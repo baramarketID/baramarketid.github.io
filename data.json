@@ -28,6 +28,14 @@
  "linksLabel": "Link resmi",
  "links": [
   {
+   "id": "l9",
+   "title": "Website",
+   "url": "https://baramarket.id",
+   "sub": "baramarket.id",
+   "icon": "globe",
+   "featured": false
+  },
+  {
    "id": "l1",
    "title": "Order otomatis via Bot Telegram",
    "url": "https://t.me/baramarket_bot",
@@ -36,12 +44,12 @@
    "featured": true
   },
   {
-   "id": "l2",
-   "title": "Chat CS via WhatsApp",
-   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya",
-   "sub": "Tanya produk, kendala order, konfirmasi bayar",
-   "icon": "headset",
-   "featured": false
+   "id": "l5",
+   "title": "Sewa Bot Topup 15K",
+   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya%20sewa%20bot%20%20topup",
+   "sub": "Punya bot topup sendiri, tinggal pakai",
+   "icon": "bag",
+   "featured": true
   },
   {
    "id": "l3",
@@ -60,12 +68,12 @@
    "featured": false
   },
   {
-   "id": "l5",
-   "title": "Sewa Bot Topup & Bot Store",
-   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya%20sewa%20bot",
-   "sub": "Punya bot jualan sendiri, tinggal pakai",
-   "icon": "bag",
-   "featured": true
+   "id": "l2",
+   "title": "Chat CS via WhatsApp",
+   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya",
+   "sub": "Tanya produk, kendala order, konfirmasi bayar",
+   "icon": "headset",
+   "featured": false
   },
   {
    "id": "l6",
@@ -89,14 +97,6 @@
    "url": "https://t.me/Csbaramarket",
    "sub": "@Csbaramarket",
    "icon": "send",
-   "featured": false
-  },
-  {
-   "id": "l9",
-   "title": "Website",
-   "url": "https://baramarket.id",
-   "sub": "baramarket.id",
-   "icon": "globe",
    "featured": false
   },
   {
@@ -158,5 +158,5 @@
   "title": "Kabar & Promo Terbaru",
   "sub": "Info promo, event, dan update layanan biar kamu nggak ketinggalan."
  },
- "theme": "light"
+ "theme": "dark"
 }
