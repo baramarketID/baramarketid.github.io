@@ -223,6 +223,23 @@ body::after{animation:drift 14s ease-in-out infinite}
   .ticker .track{flex-wrap:wrap;width:auto;justify-content:center}
   .ticker .track .dup{display:none}
 }
+
+/* icon picker */
+.ipick{display:flex;align-items:center;gap:12px;width:100%;text-align:left;cursor:pointer;font:600 .92rem var(--font-body);color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px 8px 8px}
+.ipick:hover{border-color:var(--accent)}
+.ipick .ic,.iopt .ic{width:38px;height:38px;flex:none;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.ipick .ic svg,.iopt .ic svg{width:21px;height:21px}
+.ipick .nm{flex:1;min-width:0}
+.ipick .chev{font-size:.78rem;font-weight:700;color:var(--accent)}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;margin-top:6px;padding:8px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);max-height:340px;overflow-y:auto}
+.iopt{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 4px;border-radius:10px;border:1px solid transparent;
+  background:transparent;color:var(--ink);cursor:pointer;font:600 .68rem/1.2 var(--font-body);text-align:center}
+.iopt .lb{overflow-wrap:anywhere}
+.iopt:hover{border-color:var(--line);background:var(--bg)}
+.iopt.on{border-color:var(--accent);background:var(--accent-soft)}
+.iopt.on .ic{background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame)}
 </style>
 </head>
 <body>
@@ -248,7 +265,7 @@ var app=document.getElementById("app");
 var mode="view", draft=null, artifactNs=null, canEdit=false, saving=false, status={text:"",kind:""}, pendingDraft=null;
 var inClaude=!!(window.claude&&window.claude.use);
 var localEdit=false; // website biasa (Netlify dll): edit lewat alamat #edit, hasilnya didownload
-var previewing=false, saveTimer=null;
+var previewing=false, saveTimer=null, openPicker=null;
 
 var SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
 var ICONS={
@@ -265,9 +282,60 @@ var ICONS={
   tag:'<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="7.5" r="1.3" fill="currentColor"/>',
   star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3z"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/>',
-  link:'<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>'
+  link:'<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
+  music:'<path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+  video:'<rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5 21.5 7v10l-6-3.5"/>',
+  image:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 16l-5-5-9 9"/>',
+  store:'<path d="M4 10v10h16V10"/><path d="M2.5 10 5 4h14l2.5 6a3 3 0 0 1-5.8.8 3 3 0 0 1-5.4 0A3 3 0 0 1 2.5 10z"/><path d="M10 20v-5h4v5"/>',
+  cart:'<path d="M3 4h2.5l2.2 11h10.8L21 7.5H6.5"/><circle cx="9.5" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
+  percent:'<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',
+  ticket:'<path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h14a1.5 1.5 0 0 1 1.5 1.5V10a2 2 0 0 0 0 4v2.5A1.5 1.5 0 0 1 19 18H5a1.5 1.5 0 0 1-1.5-1.5V14a2 2 0 0 0 0-4V7.5z"/><path d="M14 7v1.5M14 11.25v1.5M14 15.5V17"/>',
+  gift:'<rect x="3.5" y="9" width="17" height="4" rx="1"/><path d="M5 13v7.5h14V13M12 9v11.5"/><path d="M12 9c-1.5-3.5-5.5-4-5.5-1.5S10 9 12 9zM12 9c1.5-3.5 5.5-4 5.5-1.5S14 9 12 9z"/>',
+  crown:'<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7.5 11M17 6h3v1.5a3.5 3.5 0 0 1-3.5 3.5M12 14v3.5M9.5 17.5h5v3h-5z"/>',
+  fire:'<path d="M12 21a7 7 0 0 0 7-7c0-4-3-6.5-4.5-10-1 2.5-2.5 4-4 4.5C10 6 9.5 5 9 3.5 6.5 6 5 9.5 5 14a7 7 0 0 0 7 7z"/><path d="M12 21a3 3 0 0 1-3-3c0-2 1.5-3 3-5 1.5 2 3 3 3 5a3 3 0 0 1-3 3z"/>',
+  bolt:'<path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8z"/>',
+  sparkle:'<path d="M12 3c.6 4.6 2.4 6.4 7 7-4.6.6-6.4 2.4-7 7-.6-4.6-2.4-6.4-7-7 4.6-.6 6.4-2.4 7-7z"/><path d="M19 15.5c.3 1.8 1 2.5 2.5 2.8-1.5.3-2.2 1-2.5 2.7-.3-1.7-1-2.4-2.5-2.7 1.5-.3 2.2-1 2.5-2.8z"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  shield:'<path d="M12 3 4.5 6v5.5c0 4.5 3.2 8.2 7.5 9.5 4.3-1.3 7.5-5 7.5-9.5V6L12 3z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  thumb:'<path d="M7 10.5V20H4.5a1 1 0 0 1-1-1v-7.5a1 1 0 0 1 1-1H7z"/><path d="M7 10.5 11 3a2.5 2.5 0 0 1 2.5 2.8L13 9.5h5.6a2 2 0 0 1 2 2.4l-1.4 6.5a2 2 0 0 1-2 1.6H7"/>',
+  heart:'<path d="M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7.5 3c0 5.4-7.5 10-7.5 10z"/>',
+  smile:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><circle cx="9" cy="10" r=".9" fill="currentColor"/><circle cx="15" cy="10" r=".9" fill="currentColor"/>',
+  phone:'<path d="M5 4h3l2 5-2.5 1.5a11 11 0 0 0 6 6L15 14l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  mobile:'<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  wifi:'<path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/>',
+  wallet:'<path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V7z"/><path d="M4 7l11-3v3"/><path d="M20 12h-4a1.5 1.5 0 0 0 0 3h4"/>',
+  qr:'<rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><path d="M14.5 14.5H17V17M20.5 14.5v.01M17 20.5h3.5V17M14.5 20.5v.01"/>',
+  card:'<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M2.5 10h19M6 15h4"/>',
+  coin:'<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>',
+  diamond:'<path d="M6.5 4h11L21 9.5 12 20 3 9.5 6.5 4z"/><path d="M3 9.5h18M12 20 8.5 9.5 10 4M12 20l3.5-10.5L14 4"/>',
+  joystick:'<rect x="3" y="15" width="18" height="6" rx="2"/><path d="M12 15V9"/><circle cx="12" cy="6" r="3"/>',
+  rocket:'<path d="M14 4.5c3-1.5 5.5-1 5.5-1s.5 2.5-1 5.5L13 14.5 9.5 11 14 4.5z"/><path d="M9.5 11 6 10.5 8.5 8H12M13 14.5l.5 3.5 2.5-2.5V12"/><path d="M7 14.5c-2 .5-2.5 3-2.5 5 2 0 4.5-.5 5-2.5"/>',
+  chart:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 20.5a8 8 0 0 1 16 0"/>',
+  key:'<circle cx="8" cy="14" r="4.5"/><path d="M11.5 11 20 2.5M17 5.5l2.5 2.5M14.5 8l2 2"/>',
+  lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3M12 14.5V17"/>',
+  bell:'<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15l1.5-2z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.5v.7"/><circle cx="12" cy="17" r=".9" fill="currentColor"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".9" fill="currentColor"/>',
+  calendar:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  book:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/>',
+  list:'<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.5" cy="6.5" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="17.5" r="1" fill="currentColor"/>',
+  download:'<path d="M12 3.5v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 16.5v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/>',
+  pin:'<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.5"/>'
 };
-var ICON_NAMES={bot:"Bot / otomatis",chat:"Chat",headset:"Customer service",users:"Grup / komunitas",megaphone:"Saluran / pengumuman",send:"Telegram / pesan",camera:"Instagram / foto",gamepad:"Game / Discord",play:"Video / TikTok / YouTube",bag:"Toko / produk",tag:"Promo / diskon",star:"Unggulan",globe:"Website",link:"Link lain"};
+var ICON_NAMES={
+  bot:"Bot",chat:"Chat",headset:"CS",users:"Grup",megaphone:"Saluran",send:"Pesan",bell:"Notifikasi",mail:"Email",phone:"Telepon",
+  camera:"Foto / IG",image:"Galeri",video:"Video",play:"YouTube",music:"Musik",
+  gamepad:"Game",joystick:"Joystick",diamond:"Diamond",rocket:"Joki / boost",trophy:"Piala",crown:"Mahkota",
+  bag:"Produk",store:"Toko",cart:"Keranjang",tag:"Promo",percent:"Diskon",ticket:"Voucher",gift:"Hadiah",
+  star:"Unggulan",fire:"Hot",bolt:"Kilat",sparkle:"Baru",chart:"Naik",
+  wallet:"E-wallet",qr:"QRIS",card:"Bank",coin:"Saldo",mobile:"HP / pulsa",wifi:"Kuota",
+  key:"Premium",lock:"Aman",shield:"Garansi",user:"Akun",clock:"24 jam",calendar:"Jadwal",
+  thumb:"Testimoni",heart:"Favorit",smile:"Puas",
+  list:"Daftar harga",book:"Panduan",help:"Bantuan",info:"Info",download:"Download",pin:"Lokasi",globe:"Website",link:"Link lain"
+};
 var UI={
   arrow:'<path d="M7 17 17 7M9 7h8v8"/>',
   edit:'<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
@@ -432,9 +500,13 @@ function renderEditor(){
   // links
   var lc=el("section",{class:"card"},[el("h2",{text:"Link ("+d.links.length+")"}),bind(d,"linksLabel","ll","Judul bagian link",{ph:"Link"})]);
   d.links.forEach(function(l,i){
-    var sel=el("select",{id:"l-"+l.id+"-icon"});
-    Object.keys(ICON_NAMES).forEach(function(k){var o=el("option",{value:k,text:ICON_NAMES[k]});if(k===l.icon)o.selected=true;sel.appendChild(o);});
-    sel.addEventListener("change",function(){l.icon=sel.value;touch();});
+    var open=openPicker===l.id, pid="l-"+l.id+"-icon";
+    var pick=el("button",{type:"button",class:"ipick",id:pid,"aria-expanded":open?"true":"false",onclick:function(){openPicker=open?null:l.id;render();refocus(pid);}},[
+      el("span",{class:"ic",html:svg(l.icon)}),el("span",{class:"nm",text:ICON_NAMES[l.icon]||"Link lain"}),el("span",{class:"chev",text:open?"Tutup":"Ganti ikon"})]);
+    var grid=open?el("div",{class:"igrid",role:"group","aria-label":"Pilih ikon"},Object.keys(ICON_NAMES).map(function(k){
+      return el("button",{type:"button",class:"iopt"+(k===l.icon?" on":""),"aria-pressed":k===l.icon?"true":"false",title:ICON_NAMES[k],
+        onclick:function(){l.icon=k;openPicker=null;touch();render();refocus(pid);}},[el("span",{class:"ic",html:svg(k)}),el("span",{class:"lb",text:ICON_NAMES[k]})]);
+    })):null;
     lc.appendChild(el("div",{class:"le"},[
       el("div",{class:"le-top"},[
         el("span",{class:"num",text:"Link "+(i+1)}),
@@ -447,10 +519,8 @@ function renderEditor(){
       bind(l,"title","l-"+l.id+"-t","Judul"),
       bind(l,"url","l-"+l.id+"-u","Alamat link",{ph:"https://... atau wa.me/62...",hint:"Boleh tanpa https://"}),
       bind(l,"sub","l-"+l.id+"-s","Keterangan kecil",{ph:"Kosongkan untuk menampilkan alamat link"}),
-      el("div",{class:"row2"},[
-        el("div",{class:"field"},[el("label",{for:"l-"+l.id+"-icon",text:"Ikon"}),sel]),
-        el("div",{class:"field"},[el("span",{class:"lbl",text:"Sorotan"}),checkbox(l,"featured","l-"+l.id+"-f","Tandai Hot")])
-      ])
+      el("div",{class:"field"},[el("label",{for:pid,text:"Ikon"}),pick,grid]),
+      checkbox(l,"featured","l-"+l.id+"-f","Tandai Hot (link disorot dan diberi bingkai api)")
     ]));
   });
   lc.appendChild(el("button",{type:"button",class:"btn2 add",onclick:function(){var n={id:uid(),title:"",url:"",sub:"",icon:"link",featured:false};d.links.push(n);touch();render();ss(function(){document.getElementById("l-"+n.id+"-t").focus();});}},[el("span",{html:svg("plus",UI)}),"Tambah link"]));
@@ -472,6 +542,7 @@ function renderEditor(){
     el("button",{type:"button",class:"btn2 primary",id:"save-btn",disabled:saving||null,onclick:save},[el("span",{html:svg("check",UI)}),saving?"Menyimpan…":(localEdit?(ghToken()?"Simpan & terbitkan":"Simpan & download"):"Simpan")])
   ])]));
 }
+function refocus(id){setTimeout(function(){ss(function(){document.getElementById(id).focus({preventScroll:true});});},0);}
 function move(i,dir){var a=draft.links,j=i+dir;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;touch();render();}
 function loadLogo(file){
   var r=new FileReader();
