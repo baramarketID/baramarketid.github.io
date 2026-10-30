@@ -15,15 +15,15 @@
   "Pulsa & Data",
   "Saldo E-Wallet",
   "Aplikasi Premium",
-  "Sewa Bot"
+  "Sewa Bot Topup 15k !"
  ],
  "promo": {
   "show": true,
   "eyebrow": "Order otomatis 24 jam",
   "title": "Top up langsung masuk tanpa nunggu admin",
-  "text": "Pilih produk di bot, bayar pakai QRIS, saldo diproses otomatis. QRIS bebas biaya admin sampai Rp490.000.",
-  "btnLabel": "Order lewat bot",
-  "btnUrl": "https://t.me/baramarket_bot"
+  "text": "Pilih produk di bot, bayar pakai QRIS, saldo diproses otomatis. QRIS bebas biaya admin.",
+  "btnLabel": "Join Grup Topup",
+  "btnUrl": "https://chat.whatsapp.com/Ez8waXELppJ8LmNRRkJLON"
  },
  "linksLabel": "Link resmi",
  "links": [
