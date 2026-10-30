@@ -298,6 +298,22 @@ body::after{animation:drift 14s ease-in-out infinite}
 .hero .banner::before{inset:-35% 0;border-radius:0;
   background:radial-gradient(closest-side at 20% 50%,rgba(245,122,28,.38),rgba(245,122,28,0)),radial-gradient(closest-side at 62% 50%,rgba(236,52,66,.14),rgba(236,52,66,0))}
 .promo .mark{object-fit:contain}
+
+/* login */
+input[type=password]{width:100%;font:500 .92rem var(--font-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px}
+input[type=password]:focus{outline:2px solid var(--focus);outline-offset:1px}
+.login{padding-block:48px 64px}
+.login form{gap:14px}
+.login-head{display:flex;gap:14px;align-items:flex-start}
+.login-head h1{font-family:var(--font-display);font-size:1.25rem;margin:0 0 4px}
+.login-head p{margin:0;color:var(--muted);font-size:.88rem}
+.login-ic{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame)}
+.login-ic svg{width:22px;height:22px}
+.login .btn2.primary svg{width:16px;height:16px}
+.login-status{margin:0;font-size:.85rem;color:var(--muted);min-height:1.2em}
+.login-status.err{color:var(--warn)}
+.login-status.ok{color:var(--ok)}
+.login > .hint{color:var(--muted);font-size:.82rem;margin:0}
 </style>
 </head>
 <body>
@@ -312,8 +328,12 @@ var DRAFT_KEY="bm-link-draft";
 var LOCAL_KEY="bm-site-draft";
 var SITE_TITLE="BARAMARKET.ID · Trusted and complete store";
 var GH={owner:"baramarketID",repo:"baramarketid.github.io",branch:"main",path:"data.json"};
-var TOKEN_KEY="bm-gh-token";
-var ghUser="";
+var TOKEN_KEY="bm-gh-token";            // versi lama: token tanpa batas waktu (dihapus, sekarang wajib login)
+var SESSION_KEY="bm-session";            // {token, exp} — login berlaku 24 jam
+var SESSION_MS=24*60*60*1000;
+var DEFAULT_AUTH={"s": "cf6bdab5c7cf39d95c782c99e3d4dc2e", "it": 200000, "h": "094348f2c39026d26e3b0742267b6f612d89dc93eb4412f5e4f3680888de01f5"};  // PBKDF2-SHA256 dari "username\npassword" (huruf kecil untuk username)
+var ghUser="", loginFails=0, loginLockUntil=0;
+ss(function(){localStorage.removeItem(TOKEN_KEY);});
 
 var state=JSON.parse(document.getElementById("bm-data").textContent);
 var DEFAULT_LOGO=(state.profile&&state.profile.logo)||"";
@@ -546,7 +566,7 @@ function renderView(s){
 }
 
 /* ---------- editor ---------- */
-function startEdit(){var ld=localEdit?ss(function(){return JSON.parse(localStorage.getItem(LOCAL_KEY)||"null");}):null;draft=ld||clone(state);if(ld)status={text:"Melanjutkan draf terakhir yang tersimpan di browser ini.",kind:""};else status={text:"",kind:""};previewing=false;(draft.links||[]).concat(draft.news||[]).forEach(function(l){if(!l.id)l.id=uid();});mode="edit";render();window.scrollTo(0,0);}
+function startEdit(){if(localEdit&&!inClaude&&!session()){mode="login";render();return;}var ld=localEdit?ss(function(){return JSON.parse(localStorage.getItem(LOCAL_KEY)||"null");}):null;draft=ld||clone(state);if(ld)status={text:"Melanjutkan draf terakhir yang tersimpan di browser ini.",kind:""};else status={text:"",kind:""};previewing=false;(draft.links||[]).concat(draft.news||[]).forEach(function(l){if(!l.id)l.id=uid();});mode="edit";render();window.scrollTo(0,0);}
 function bind(obj,key,id,label,opt){
   opt=opt||{};
   var input=opt.area?el("textarea",{id:id,rows:opt.rows||3}):el("input",{id:id,type:opt.type||"text",placeholder:opt.ph||null});
@@ -567,7 +587,7 @@ function renderEditor(){
   var w=el("main",{class:"wrap ed"});
   w.appendChild(el("div",{class:"ed-head"},[el("h1",{text:"Edit halaman"}),el("p",{text:localEdit?(ghToken()?"Ubah isi, cek lewat Pratinjau, lalu tekan Simpan & terbitkan. Website ikut berubah sekitar 1 menit kemudian.":"Ubah isi, cek lewat Pratinjau, lalu simpan. Sambungkan GitHub di bawah supaya Simpan langsung mengubah website."):"Ubah isi lalu tekan Simpan. Pengunjung langsung melihat versi baru."}),
     localEdit?el("button",{type:"button",class:"btn2",style:"align-self:flex-start;margin-top:6px",onclick:resetDraft},["Mulai ulang dari versi online"]):null]));
-  if(localEdit)w.appendChild(ghCard());
+  if(localEdit)w.appendChild(sessionCard(d));
 
   // profile
   var fileIn=el("input",{type:"file",id:"logo-file",accept:"image/*",hidden:true});
@@ -753,6 +773,7 @@ function normalize(d){
     return {id:l.id||uid(),title:l.title.trim(),url:safeUrl(l.url),sub:(l.sub||"").trim(),icon:ICONS[l.icon]?l.icon:"link",featured:!!l.featured};
   });
   if(o.promo&&o.promo.btnUrl)o.promo.btnUrl=safeUrl(o.promo.btnUrl);
+  delete o._authOpen;
   o.news=(o.news||[]).filter(function(x){return (x.title||"").trim();}).map(function(x){
     return {id:x.id||uid(),image:x.image||"",badge:(x.badge||"").trim(),date:(x.date||"").trim(),title:x.title.trim(),text:(x.text||"").trim(),url:safeUrl(x.url),linkLabel:(x.linkLabel||"").trim()};
   });
@@ -778,7 +799,7 @@ function save(){
   if(saving)return;
   var clean=normalize(draft);
   if(!clean.profile.name||!clean.profile.name.trim()){previewing=false;render();setStatus("Nama toko belum diisi.","err");ss(function(){document.getElementById("p-name").focus();});return;}
-  if(localEdit&&!artifactNs){if(ghToken())publishGitHub(clean);else downloadSite(clean);return;}
+  if(localEdit&&!artifactNs){delete clean._authOpen;if(ghToken())publishGitHub(clean);else{ss(function(){localStorage.setItem(LOCAL_KEY,JSON.stringify(draft));});logout("Sesi login sudah habis. Masuk lagi, lalu tekan Simpan & terbitkan. Perubahanmu masih tersimpan.");}return;}
   if(!artifactNs)return;
   saving=true;setStatus("Menyimpan…");
   var b=document.getElementById("save-btn");if(b)b.disabled=true;
@@ -833,6 +854,7 @@ function embers(){
 embers();
 
 function render(){
+  if(mode==="login"){renderLogin();return;}
   if(mode==="edit"&&draft&&previewing){renderPreview();return;}
   if(mode==="edit"&&draft)renderEditor(); else renderView(state);
 }
@@ -885,7 +907,80 @@ function downloadSite(clean){
   }catch(e){setStatus("File gagal dibuat di browser ini. Coba pakai Chrome terbaru.","err");}
 }
 /* ---------- GitHub: simpan langsung ke repo ---------- */
-function ghToken(){return ss(function(){return localStorage.getItem(TOKEN_KEY)||"";})||"";}
+function session(){
+  var x=ss(function(){return JSON.parse(localStorage.getItem(SESSION_KEY)||"null");});
+  if(!x||!x.token||!(x.exp>Date.now())){if(x)ss(function(){localStorage.removeItem(SESSION_KEY);});return null;}
+  return x;
+}
+function ghToken(){var x=session();return x?x.token:"";}
+function logout(msg){
+  ss(function(){localStorage.removeItem(SESSION_KEY);});ghUser="";
+  mode="login";draft=null;previewing=false;status={text:msg||"Kamu sudah keluar.",kind:""};render();
+}
+function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return ("0"+b.toString(16)).slice(-2);}).join("");}
+function unhex(h){var a=new Uint8Array(h.length/2);for(var i=0;i<a.length;i++)a[i]=parseInt(h.substr(i*2,2),16);return a;}
+function pbkdf2(u,pw,saltHex,it){
+  var enc=new TextEncoder();
+  return crypto.subtle.importKey("raw",enc.encode(String(u).trim().toLowerCase()+"\n"+pw),"PBKDF2",false,["deriveBits"]).then(function(k){
+    return crypto.subtle.deriveBits({name:"PBKDF2",salt:unhex(saltHex),iterations:it,hash:"SHA-256"},k,256);
+  }).then(hex);
+}
+function authCfg(){var a=state&&state._auth;return (a&&a.s&&a.h&&a.it)?a:DEFAULT_AUTH;}
+function same(a,b){if(a.length!==b.length)return false;var r=0;for(var i=0;i<a.length;i++)r|=a.charCodeAt(i)^b.charCodeAt(i);return r===0;}
+
+/* ---------- layar login ---------- */
+function renderLogin(){
+  if(!inClaude)applyTheme(state.theme||"dark");
+  var w=el("main",{class:"wrap ed login"});
+  var u=el("input",{type:"text",id:"lg-user",autocomplete:"username",autocapitalize:"none",spellcheck:"false"});
+  var p=el("input",{type:"password",id:"lg-pass",autocomplete:"current-password"});
+  var t=el("input",{type:"password",id:"lg-token",autocomplete:"off",placeholder:"github_pat_..."});
+  var st=el("p",{class:"login-status"+(status.kind?" "+status.kind:""),role:"status",text:status.text||""});
+  var btn=el("button",{type:"submit",class:"btn2 primary",id:"lg-btn"},[el("span",{html:svg("lock")}),"Masuk"]);
+  function say(x,k){status={text:x,kind:k||""};st.textContent=x;st.className="login-status"+(k?" "+k:"");}
+  var form=el("form",{class:"card",novalidate:true},[
+    el("div",{class:"login-head"},[el("span",{class:"login-ic",html:svg("lock")}),el("div",null,[el("h1",{text:"Masuk ke halaman edit"}),el("p",{text:"Login berlaku 24 jam di browser ini. Setelah itu kamu diminta login lagi."})])]),
+    el("div",{class:"field"},[el("label",{for:"lg-user",text:"Username"}),u]),
+    el("div",{class:"field"},[el("label",{for:"lg-pass",text:"Password"}),p]),
+    el("div",{class:"field"},[el("label",{for:"lg-token",text:"Token GitHub"}),t,el("span",{class:"hint",text:"Token yang diawali github_pat_ dengan izin Contents: Read and write ke repo website."})]),
+    btn,st
+  ]);
+  form.addEventListener("submit",function(e){
+    e.preventDefault();
+    if(Date.now()<loginLockUntil){say("Terlalu banyak percobaan. Tunggu "+Math.ceil((loginLockUntil-Date.now())/1000)+" detik lalu coba lagi.","err");return;}
+    var uv=u.value.trim(),pv=p.value,tv=t.value.trim();
+    if(!uv||!pv||!tv){say("Isi username, password, dan token GitHub.","err");return;}
+    if(!window.crypto||!crypto.subtle){say("Browser ini tidak mendukung login aman. Buka lewat Chrome atau Safari terbaru dengan alamat https.","err");return;}
+    btn.disabled=true;say("Mengecek…");
+    var a=authCfg();
+    pbkdf2(uv,pv,a.s,a.it).then(function(h){
+      if(!same(h,a.h)){var e2=new Error("bad");e2.auth=true;throw e2;}
+      return fetch("https://api.github.com/repos/"+GH.owner+"/"+GH.repo,{headers:{"Authorization":"Bearer "+tv,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}}).then(function(r){
+        return r.json().catch(function(){return null;}).then(function(j){
+          if(!r.ok){var e3=new Error((j&&j.message)||"HTTP "+r.status);e3.status=r.status;throw e3;}
+          if(!j||!j.permissions||!j.permissions.push){var e4=new Error("no push");e4.status=403;throw e4;}
+        });
+      });
+    }).then(function(){
+      loginFails=0;
+      ss(function(){localStorage.setItem(SESSION_KEY,JSON.stringify({token:tv,exp:Date.now()+SESSION_MS}));});
+      p.value="";t.value="";
+      status={text:"",kind:""};startEdit();
+      if(!session())setStatus("Browser ini memblokir penyimpanan, jadi login hanya berlaku selama halaman ini terbuka.","err");
+    },function(e){
+      btn.disabled=false;
+      if(e&&e.auth){loginFails++;if(loginFails>=3){loginLockUntil=Date.now()+30000*Math.pow(2,loginFails-3);}say("Username atau password salah.","err");p.value="";p.focus();return;}
+      say(ghErr(e),"err");
+    });
+  });
+  w.appendChild(form);
+  w.appendChild(el("p",{class:"hint",style:"text-align:center",text:"Lupa password? Minta Claude membuatkan password baru."}));
+  app.replaceChildren(w);
+  setTimeout(function(){ss(function(){u.focus({preventScroll:true});});},0);
+}
+var sessionTimer=setInterval(function(){
+  if(localEdit&&mode==="edit"&&!session()&&!saving)logout("Sesi login sudah habis (24 jam). Masuk lagi untuk lanjut. Perubahan yang belum disimpan tetap ada di browser ini.");
+},60000);
 function ghApi(method,url,body){
   return fetch("https://api.github.com"+url,{method:method,headers:{"Authorization":"Bearer "+ghToken(),"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},
     body:body?JSON.stringify(body):undefined}).then(function(r){
@@ -905,30 +1000,36 @@ function b64(str){
   for(var i=0;i<bytes.length;i+=CH)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
   return btoa(bin);
 }
-function ghCard(){
-  var tok=ghToken();
-  if(tok){
-    return el("section",{class:"card"},[
-      el("h2",{text:"Tersambung ke GitHub"}),
-      el("p",{class:"hint",style:"margin:0",text:(ghUser?"Akun "+ghUser+". ":"")+"Simpan akan langsung mengubah website. Token hanya tersimpan di browser ini."}),
-      el("button",{type:"button",class:"btn2",style:"align-self:flex-start",onclick:function(){ss(function(){localStorage.removeItem(TOKEN_KEY);});ghUser="";status={text:"GitHub diputus dari browser ini.",kind:""};render();}},["Putuskan dari browser ini"])
-    ]);
-  }
-  var inp=el("input",{type:"password",id:"gh-token",placeholder:"github_pat_...",autocomplete:"off"});
-  var btn=el("button",{type:"button",class:"btn2 primary",style:"align-self:flex-start",onclick:function(){
-    var t=inp.value.trim(); if(!t){setStatus("Tempel token dulu di kolom itu.","err");inp.focus();return;}
-    btn.disabled=true;setStatus("Mengecek token…");
-    ss(function(){localStorage.setItem(TOKEN_KEY,t);});
-    ghApi("GET","/repos/"+GH.owner+"/"+GH.repo).then(function(r){
-      if(!r||!r.permissions||!r.permissions.push){var e=new Error("no push");e.status=403;throw e;}
-      return ghApi("GET","/user").then(function(u){ghUser=(u&&u.login)||"";},function(){});
-    }).then(function(){status={text:"GitHub tersambung. Sekarang Simpan langsung mengubah website.",kind:"ok"};render();},
-      function(e){ss(function(){localStorage.removeItem(TOKEN_KEY);});btn.disabled=false;setStatus(ghErr(e),"err");});
-  }},["Sambungkan"]);
+function sessionCard(d){
+  var x=session(), until=x?new Date(x.exp):null;
+  var pad=function(n){return ("0"+n).slice(-2);};
+  var nu=el("input",{type:"text",id:"au-user",autocomplete:"username",autocapitalize:"none",spellcheck:"false"});
+  var np=el("input",{type:"password",id:"au-pass",autocomplete:"new-password"});
+  var np2=el("input",{type:"password",id:"au-pass2",autocomplete:"new-password"});
+  var open=!!d._authOpen;
+  var box=open?el("div",{class:"le"},[
+    el("div",{class:"field"},[el("label",{for:"au-user",text:"Username baru"}),nu]),
+    el("div",{class:"field"},[el("label",{for:"au-pass",text:"Password baru (min. 8 karakter)"}),np]),
+    el("div",{class:"field"},[el("label",{for:"au-pass2",text:"Ulangi password baru"}),np2]),
+    el("button",{type:"button",class:"btn2 primary",style:"align-self:flex-start",onclick:function(){
+      var uv=nu.value.trim(),a=np.value,b=np2.value;
+      if(!uv){setStatus("Isi username baru.","err");nu.focus();return;}
+      if(a.length<8){setStatus("Password minimal 8 karakter.","err");np.focus();return;}
+      if(a!==b){setStatus("Ulangan password tidak sama.","err");np2.focus();return;}
+      var salt=hex(crypto.getRandomValues(new Uint8Array(16)));
+      pbkdf2(uv,a,salt,200000).then(function(h){
+        draft._auth={s:salt,it:200000,h:h};delete draft._authOpen;touch();
+        status={text:"Username & password baru siap. Tekan Simpan & terbitkan supaya berlaku.",kind:"ok"};render();
+      });
+    }},["Pakai username & password ini"])
+  ]):null;
   return el("section",{class:"card"},[
-    el("h2",{text:"Sambungkan ke GitHub (sekali saja)"}),
-    el("p",{class:"hint",style:"margin:0",text:"Tempel token GitHub supaya Simpan langsung mengubah website, tanpa download dan upload. Token hanya tersimpan di browser ini, tidak ikut ke website."}),
-    el("div",{class:"field"},[el("label",{for:"gh-token",text:"Token GitHub"}),inp]),btn
+    el("h2",{text:"Login"}),
+    el("p",{class:"hint",style:"margin:0",text:"Sesi berlaku sampai "+(until?pad(until.getHours())+"."+pad(until.getMinutes())+" "+until.getDate()+"/"+(until.getMonth()+1):"-")+". Setelah itu kamu diminta login lagi."}),
+    el("div",{class:"tools",style:"flex-wrap:wrap"},[
+      el("button",{type:"button",class:"btn2",onclick:function(){logout();}},["Keluar"]),
+      el("button",{type:"button",class:"btn2",onclick:function(){if(open)delete d._authOpen;else d._authOpen=true;render();}},[open?"Tutup":"Ganti username & password"])
+    ]),box
   ]);
 }
 function publishGitHub(clean){
@@ -965,8 +1066,10 @@ function loadRemote(){
 loadRemote().then(function(){render();checkHash();});
 
 function checkHash(){
-  if(inClaude||location.hash!=="#edit")return;
+  if(inClaude)return;
+  if(location.hash!=="#edit"){if(localEdit&&(mode==="login"||mode==="edit")){mode="view";draft=null;previewing=false;render();}return;}
   localEdit=true;canEdit=true;
+  if(!session()){if(mode!=="login"){mode="login";status={text:"",kind:""};render();}return;}
   if(mode!=="edit")startEdit();
 }
 window.addEventListener("hashchange",checkHash);
