@@ -236,6 +236,9 @@ var RESET=":root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);pad
 var DRAFT_KEY="bm-link-draft";
 var LOCAL_KEY="bm-site-draft";
 var SITE_TITLE="BARAMARKET.ID · Trusted and complete store";
+var GH={owner:"baramarketID",repo:"baramarketid.github.io",branch:"main",path:"data.json"};
+var TOKEN_KEY="bm-gh-token";
+var ghUser="";
 
 var state=JSON.parse(document.getElementById("bm-data").textContent);
 var styleText=document.getElementById("bm-style").textContent;
@@ -388,8 +391,9 @@ function iconBtn(name,label,fn,disabled,cls){
 function renderEditor(){
   var d=draft; d.profile=d.profile||{}; d.promo=d.promo||{}; d.links=d.links||[];
   var w=el("main",{class:"wrap ed"});
-  w.appendChild(el("div",{class:"ed-head"},[el("h1",{text:"Edit halaman"}),el("p",{text:localEdit?"Ubah isi, cek lewat Pratinjau, lalu tekan Simpan & download. Upload file index.html hasilnya ke repo GitHub supaya pengunjung melihat versi baru. Perubahan tersimpan otomatis di browser ini sampai kamu upload.":"Ubah isi lalu tekan Simpan. Pengunjung langsung melihat versi baru."}),
+  w.appendChild(el("div",{class:"ed-head"},[el("h1",{text:"Edit halaman"}),el("p",{text:localEdit?(ghToken()?"Ubah isi, cek lewat Pratinjau, lalu tekan Simpan & terbitkan. Website ikut berubah sekitar 1 menit kemudian.":"Ubah isi, cek lewat Pratinjau, lalu simpan. Sambungkan GitHub di bawah supaya Simpan langsung mengubah website."):"Ubah isi lalu tekan Simpan. Pengunjung langsung melihat versi baru."}),
     localEdit?el("button",{type:"button",class:"btn2",style:"align-self:flex-start;margin-top:6px",onclick:resetDraft},["Mulai ulang dari versi online"]):null]));
+  if(localEdit)w.appendChild(ghCard());
 
   // profile
   var fileIn=el("input",{type:"file",id:"logo-file",accept:"image/*",hidden:true});
@@ -465,7 +469,7 @@ function renderEditor(){
   app.appendChild(el("div",{class:"ed-bar"},[el("div",{class:"in"},[
     st,
     localEdit?el("button",{type:"button",class:"btn2",onclick:function(){previewing=true;render();window.scrollTo(0,0);}},["Pratinjau"]):el("button",{type:"button",class:"btn2",disabled:saving||null,onclick:function(){mode="view";draft=null;status={text:"",kind:""};render();}},["Batal"]),
-    el("button",{type:"button",class:"btn2 primary",id:"save-btn",disabled:saving||null,onclick:save},[el("span",{html:svg("check",UI)}),saving?"Menyimpan…":(localEdit?"Simpan & download":"Simpan")])
+    el("button",{type:"button",class:"btn2 primary",id:"save-btn",disabled:saving||null,onclick:save},[el("span",{html:svg("check",UI)}),saving?"Menyimpan…":(localEdit?(ghToken()?"Simpan & terbitkan":"Simpan & download"):"Simpan")])
   ])]));
 }
 function move(i,dir){var a=draft.links,j=i+dir;if(j<0||j>=a.length)return;var t=a[i];a[i]=a[j];a[j]=t;touch();render();}
@@ -516,7 +520,7 @@ function save(){
   if(saving)return;
   var clean=normalize(draft);
   if(!clean.profile.name||!clean.profile.name.trim()){previewing=false;render();setStatus("Nama toko belum diisi.","err");ss(function(){document.getElementById("p-name").focus();});return;}
-  if(localEdit&&!artifactNs){downloadSite(clean);return;}
+  if(localEdit&&!artifactNs){if(ghToken())publishGitHub(clean);else downloadSite(clean);return;}
   if(!artifactNs)return;
   saving=true;setStatus("Menyimpan…");
   var b=document.getElementById("save-btn");if(b)b.disabled=true;
@@ -580,7 +584,7 @@ function renderPreview(){
   app.appendChild(el("div",{class:"ed-bar"},[el("div",{class:"in"},[
     el("span",{class:"status",text:"Ini pratinjau. Pengunjung belum melihat perubahan ini."}),
     el("button",{type:"button",class:"btn2",onclick:function(){previewing=false;render();}},["Lanjut edit"]),
-    el("button",{type:"button",class:"btn2 primary",onclick:save},[el("span",{html:svg("check",UI)}),"Simpan & download"])
+    el("button",{type:"button",class:"btn2 primary",onclick:save},[el("span",{html:svg("check",UI)}),ghToken()?"Simpan & terbitkan":"Simpan & download"])
   ])]));
 }
 function touch(){
@@ -621,7 +625,82 @@ function downloadSite(clean){
     setStatus("File index.html sudah didownload. Buka repo GitHub kamu, klik Add file lalu Upload files, pilih file itu, lalu Commit changes. Website berubah dalam 1–2 menit.","ok");
   }catch(e){setStatus("File gagal dibuat di browser ini. Coba pakai Chrome terbaru.","err");}
 }
-render();
+/* ---------- GitHub: simpan langsung ke repo ---------- */
+function ghToken(){return ss(function(){return localStorage.getItem(TOKEN_KEY)||"";})||"";}
+function ghApi(method,url,body){
+  return fetch("https://api.github.com"+url,{method:method,headers:{"Authorization":"Bearer "+ghToken(),"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},
+    body:body?JSON.stringify(body):undefined}).then(function(r){
+      return r.text().then(function(t){var j=null;try{j=t?JSON.parse(t):null;}catch(e){}if(!r.ok){var e2=new Error((j&&j.message)||("HTTP "+r.status));e2.status=r.status;throw e2;}return j;});
+    });
+}
+function ghErr(e){
+  var st=e&&e.status;
+  if(st===401)return "Token ditolak GitHub. Mungkin salah ketik atau sudah kedaluwarsa. Buat token baru lalu sambungkan lagi.";
+  if(st===403||st===404)return "Token ini tidak punya izin ke repo "+GH.repo+". Saat membuat token, pilih repo itu dan beri izin Contents: Read and write.";
+  if(st===413||st===422)return "Isi terlalu besar untuk disimpan. Coba pakai logo dengan ukuran file lebih kecil.";
+  if(!st)return "Tidak bisa menghubungi GitHub. Cek koneksi internet lalu coba lagi.";
+  return "GitHub menolak penyimpanan ("+e.message+"). Coba lagi sebentar lagi.";
+}
+function b64(str){
+  var bytes=new TextEncoder().encode(str),bin="",CH=0x8000;
+  for(var i=0;i<bytes.length;i+=CH)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+  return btoa(bin);
+}
+function ghCard(){
+  var tok=ghToken();
+  if(tok){
+    return el("section",{class:"card"},[
+      el("h2",{text:"Tersambung ke GitHub"}),
+      el("p",{class:"hint",style:"margin:0",text:(ghUser?"Akun "+ghUser+". ":"")+"Simpan akan langsung mengubah website. Token hanya tersimpan di browser ini."}),
+      el("button",{type:"button",class:"btn2",style:"align-self:flex-start",onclick:function(){ss(function(){localStorage.removeItem(TOKEN_KEY);});ghUser="";status={text:"GitHub diputus dari browser ini.",kind:""};render();}},["Putuskan dari browser ini"])
+    ]);
+  }
+  var inp=el("input",{type:"password",id:"gh-token",placeholder:"github_pat_...",autocomplete:"off"});
+  var btn=el("button",{type:"button",class:"btn2 primary",style:"align-self:flex-start",onclick:function(){
+    var t=inp.value.trim(); if(!t){setStatus("Tempel token dulu di kolom itu.","err");inp.focus();return;}
+    btn.disabled=true;setStatus("Mengecek token…");
+    ss(function(){localStorage.setItem(TOKEN_KEY,t);});
+    ghApi("GET","/repos/"+GH.owner+"/"+GH.repo).then(function(r){
+      if(!r||!r.permissions||!r.permissions.push){var e=new Error("no push");e.status=403;throw e;}
+      return ghApi("GET","/user").then(function(u){ghUser=(u&&u.login)||"";},function(){});
+    }).then(function(){status={text:"GitHub tersambung. Sekarang Simpan langsung mengubah website.",kind:"ok"};render();},
+      function(e){ss(function(){localStorage.removeItem(TOKEN_KEY);});btn.disabled=false;setStatus(ghErr(e),"err");});
+  }},["Sambungkan"]);
+  return el("section",{class:"card"},[
+    el("h2",{text:"Sambungkan ke GitHub (sekali saja)"}),
+    el("p",{class:"hint",style:"margin:0",text:"Tempel token GitHub supaya Simpan langsung mengubah website, tanpa download dan upload. Token hanya tersimpan di browser ini, tidak ikut ke website."}),
+    el("div",{class:"field"},[el("label",{for:"gh-token",text:"Token GitHub"}),inp]),btn
+  ]);
+}
+function publishGitHub(clean){
+  saving=true;setStatus("Menyimpan ke GitHub…");
+  var b=document.getElementById("save-btn");if(b)b.disabled=true;
+  var url="/repos/"+GH.owner+"/"+GH.repo+"/contents/"+GH.path;
+  var content=b64(JSON.stringify(clean,null,1));
+  function getSha(){return ghApi("GET",url+"?ref="+GH.branch).then(function(j){return j&&j.sha;},function(e){if(e.status===404)return null;throw e;});}
+  function put(sha){var body={message:"Update isi website",content:content,branch:GH.branch};if(sha)body.sha=sha;return ghApi("PUT",url,body);}
+  getSha().then(function(sha){
+    return put(sha).catch(function(e){if(e.status===409||e.status===422){return getSha().then(put);}throw e;});
+  }).then(function(){
+    saving=false;state=clone(clean);
+    ss(function(){localStorage.removeItem(LOCAL_KEY);});
+    draft=clone(clean);previewing=false;render();
+    setStatus("Tersimpan ke GitHub. Website berubah sekitar 1 menit lagi. Kalau belum berubah, refresh halaman website.","ok");
+  },function(e){
+    saving=false;var b2=document.getElementById("save-btn");if(b2)b2.disabled=false;
+    setStatus(ghErr(e),"err");
+  });
+}
+
+/* ---------- boot: isi terbaru dari data.json ---------- */
+function loadRemote(){
+  if(inClaude||!/^https?:$/.test(location.protocol))return Promise.resolve();
+  var f=fetch("data.json?v="+Date.now(),{cache:"no-store"}).then(function(r){return r.ok?r.json():null;}).then(function(j){
+    if(j&&j.profile&&Array.isArray(j.links))state=j;
+  }).catch(function(){});
+  return Promise.race([f,new Promise(function(res){setTimeout(res,2500);})]);
+}
+loadRemote().then(function(){render();checkHash();});
 
 function checkHash(){
   if(inClaude||location.hash!=="#edit")return;
@@ -629,7 +708,6 @@ function checkHash(){
   if(mode!=="edit")startEdit();
 }
 window.addEventListener("hashchange",checkHash);
-checkHash();
 
 (function(){
   var cl=window.claude; if(!cl||!cl.use)return;
