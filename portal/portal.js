@@ -750,15 +750,18 @@
     // ── sheet ──
     const sh = d.sheet || {};
     const link = (url, t, s2) => h('a', { class: 'slink', href: url, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'gi', icon: 'sheet' }), h('span', { class: 'tx' }, [h('b', { text: t }), h('small', { text: s2 })]), I('ext')]);
-    out.push(h('section', { class: 'dsec' }, [
-      h('h3', { class: 'dh', text: 'Google Sheet' }),
-      sh.enabled && /^https:\/\/docs\.google\.com\//.test(sh.url || '')
-        ? h('div', { class: 'dgrid two' }, [link(sh.url, 'Buka Google Sheet Rekap', 'Omset & profit, pembayaran QRIS, status pencairan, data transaksi & user')])
-        : msg('info', 'Google Sheet rekap belum dipasang untuk bot ini. Hubungi admin Baramarket untuk memasangnya.'),
-    ]));
-    out.push(h('section', { class: 'dsec' }, [
-      h('h3', { class: 'dh', text: 'Grup diskusi penyewa' }),
-      h('div', { class: 'dgrid two' }, [h('a', { class: 'slink wa', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'gi', icon: 'chat' }), h('span', { class: 'tx' }, [h('b', { text: 'Gabung Grup Diskusi Sewa Bot Topup' }), h('small', { text: 'Tanya jawab, info update fitur & tips jualan bareng penyewa lain' })]), I('ext')])]),
+    // Google Sheet + grup diskusi: berdampingan (di HP bertumpuk)
+    out.push(h('div', { class: 'dpair' }, [
+      h('section', { class: 'dsec' }, [
+        h('h3', { class: 'dh', text: 'Google Sheet' }),
+        sh.enabled && /^https:\/\/docs\.google\.com\//.test(sh.url || '')
+          ? link(sh.url, 'Buka Google Sheet Rekap', 'Omset & profit, pembayaran QRIS, status pencairan, data transaksi & user')
+          : msg('info', 'Google Sheet rekap belum dipasang untuk bot ini. Hubungi admin Baramarket untuk memasangnya.'),
+      ]),
+      h('section', { class: 'dsec' }, [
+        h('h3', { class: 'dh', text: 'Grup diskusi penyewa' }),
+        h('a', { class: 'slink grp', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'gi', icon: 'chat' }), h('span', { class: 'tx' }, [h('b', { text: 'Gabung Grup Diskusi Sewa Bot Topup' }), h('small', { text: 'Tanya jawab, info update fitur & tips jualan bareng penyewa lain' })]), I('ext')]),
+      ]),
     ]));
     if (d.bot && !d.bot.running) out.push(msg('warn', 'Bot kamu sedang tidak tersambung ke WhatsApp. Saldo & rekap tetap tampil, tapi deposit dari website butuh bot yang aktif.'));
     return out;
