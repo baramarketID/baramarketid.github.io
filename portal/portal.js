@@ -961,7 +961,7 @@
         h('section', { class: 'dsec' }, [
           h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Masa sewa' }), b.trial ? h('span', { class: 'chip draft', text: '🎁 Coba gratis' }) : null]),
           h('div', { class: 'tiles' }, [tile2('Aktif sampai', b.expiredAt ? dateID(b.expiredAt) : '—', active ? '' : 'warn'), tile2('Sisa', active ? `${left} hari` : 'Habis', active && left > 5 ? 'good' : 'warn')]),
-          h('p', { class: 'hint', text: 'Bayar QRIS, aktif otomatis. Hari baru ditambahkan ke sisa masa sewa kamu.' }),
+          h('p', { class: 'hint', text: 'Bayar QRIS, aktif otomatis. Hari baru ditambahkan ke sisa masa sewa kamu, bukti bayar dikirim ke WhatsApp owner.' }),
           h('div', null, renewBtn),
         ]),
       ]),
@@ -1022,13 +1022,13 @@
     const p = S.me.pricing;
     if (m.step === 'form') {
       let saved = ''; try { saved = localStorage.getItem('bmp-email') || ''; } catch (e) { /* abaikan */ }
-      const em = h('input', { class: 'input', id: 'rn-e', type: 'email', autocomplete: 'email', placeholder: 'email@kamu.com', value: m.email || saved });
+      const em = h('input', { class: 'input', id: 'rn-e', type: 'email', autocomplete: 'email', placeholder: 'email@kamu.com', value: m.email || b.email || saved });
       const bp = b.realBot ? null : h('input', { class: 'input', id: 'rn-b', inputmode: 'numeric', placeholder: 'nomor WhatsApp bot', value: m.botPhone || '' });
       return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
         h('header', null, [h('h3', { id: 'mt', text: 'Perpanjang sewa bot' }), h('p', { text: p ? `Paket ${p.days} hari — ${rpx(p.price)}${p.note ? ` (${p.note})` : ''}. Bayar QRIS, aktif otomatis.` : 'Bayar QRIS, aktif otomatis.' })]),
         h('div', { class: 'modal-body' }, [
           m.error ? msg('err', m.error) : null,
-          h('div', { class: 'field' }, [h('label', { for: 'rn-e', text: 'Email (untuk bukti bayar)' }), em]),
+          h('div', { class: 'field' }, [h('label', { for: 'rn-e', text: 'Email terdaftar di Baramarket' }), em, h('p', { class: 'hint', text: 'Untuk catatan data penyewa. Bukti pembayaran dikirim ke WhatsApp owner, bukan ke email.' })]),
           bp ? h('div', { class: 'field' }, [h('label', { for: 'rn-b', text: 'Nomor WhatsApp bot' }), bp, h('p', { class: 'hint', text: 'Bot kamu belum tersambung — setelah bayar, kode pairing tampil di sini.' })]) : null,
         ]),
         h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Batal'), h('button', { class: 'btn primary', type: 'button', onclick: () => renewCreate(em.value.trim(), bp ? bp.value : '') }, [I('qr'), 'Buat QRIS'])]),
