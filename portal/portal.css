@@ -345,8 +345,11 @@ details.box>summary svg.i{color:var(--accent)}
 .setrow .tx{display:flex;flex-direction:column;min-width:0}
 .setrow .tx b{font-size:.92rem}
 .setrow .tx small{font-size:.8rem;color:var(--muted)}
-.slink.wa:hover{border-color:#25D366;background:rgba(37,211,102,.1)}
-.slink.wa .gi{background:rgba(37,211,102,.14);color:#25D366}
+.slink.grp:hover{border-color:#25D366;background:rgba(37,211,102,.1)}
+.slink.grp .gi{background:rgba(37,211,102,.14);color:#25D366}
+.dpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+.dpair>.dsec{min-width:0}
+@media (max-width:860px){ .dpair{grid-template-columns:minmax(0,1fr)} }
 .side-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:.84rem;font-weight:600}
 .side-link:hover{background:var(--surface);color:#25D366}
 .side-link svg{width:16px;height:16px}
