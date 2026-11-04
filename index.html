@@ -390,7 +390,8 @@ input[type=password]:focus{outline:2px solid var(--focus);outline-offset:1px}
   .news-card{flex-basis:46%}
 }
 @media (min-width:1000px){
-  .wrap.home{max-width:1180px;display:grid;grid-template-columns:minmax(340px,420px) minmax(0,1fr);column-gap:56px;align-items:start;padding-block:56px 96px}
+  .wrap.home{max-width:1180px;padding-block:56px 96px}
+  .wrap.home .top{display:grid;grid-template-columns:minmax(340px,420px) minmax(0,1fr);column-gap:56px;align-items:start}
   .wrap.home .side{position:sticky;top:calc(24px + env(safe-area-inset-top,0px))}
   .wrap.home .main{padding-top:8px}
   .wrap.home .news-card{flex-basis:calc((100% - 28px) / 3)}
@@ -406,6 +407,17 @@ input[type=password]:focus{outline:2px solid var(--focus);outline-offset:1px}
   .ed-bar .in{max-width:760px}
 }
 @media (min-width:1000px) and (max-height:760px){.wrap.home .side{position:static}}
+/* bagian bawah selebar layar di layar lebar; kartu kabar mengisi tempat yang ada */
+@media (min-width:1000px){
+  .wrap.home{gap:40px}
+  .wrap.home .bottom{border-top:1px solid var(--line);padding-top:36px}
+  .wrap.home .news-card{flex:1 0 280px;max-width:none}
+  .wrap.home .news-img{aspect-ratio:auto;height:230px}
+  .wrap.home .bottom .foot{text-align:center}
+}
+
+.wrap.home .top{display:flex;flex-direction:column;gap:28px;min-width:0}
+@media (min-width:1000px){.wrap.home .top{display:grid}}
 </style>
 </head>
 <body>
@@ -551,6 +563,12 @@ function applyTheme(t){
   var r=document.documentElement;
   if(t==="light"||t==="dark")r.setAttribute("data-theme",t);else r.removeAttribute("data-theme");
 }
+function fitNewsNav(){
+  setTimeout(function(){Array.prototype.forEach.call(document.querySelectorAll(".news"),function(sec){
+    var row=sec.querySelector(".news-row"),nav=sec.querySelector(".news-nav");if(!row||!nav)return;
+    nav.hidden=row.scrollWidth<=row.clientWidth+4;});},60);
+}
+window.addEventListener("resize",function(){fitNewsNav();});
 function renderView(s){
   if(!inClaude)applyTheme(s.theme||"dark");
   var w=el("main",{class:"wrap"});
@@ -663,10 +681,15 @@ function renderView(s){
   }
   if(s.footer)w.appendChild(el("footer",{class:"foot",text:s.footer}));
   // Layar lebar: profil & promo di kolom kiri, link & kabar di kolom kanan (di HP tetap satu kolom).
-  var side=el("div",{class:"col side"}),mainc=el("div",{class:"col main"});
-  Array.prototype.slice.call(w.children).forEach(function(c){(c.matches(".hero,.ticker,.promo,.sewa-cta,.banner")?side:mainc).appendChild(c);});
-  w.classList.add("home");w.appendChild(side);w.appendChild(mainc);
+  var side=el("div",{class:"col side"}),mainc=el("div",{class:"col main"}),bottom=el("div",{class:"col bottom"});
+  Array.prototype.slice.call(w.children).forEach(function(c){
+    if(c.matches(".hero,.ticker,.promo,.banner"))side.appendChild(c);
+    else if(c.matches(".news,footer")||c.querySelector(".pay"))bottom.appendChild(c);
+    else mainc.appendChild(c);
+  });
+  w.classList.add("home");w.appendChild(el("div",{class:"top"},[side,mainc]));if(bottom.children.length)w.appendChild(bottom);
   app.replaceChildren(w);
+  fitNewsNav();
   if(canEdit){
     app.appendChild(el("button",{class:"fab",type:"button",onclick:startEdit},[el("span",{html:svg("edit",UI)}),"Edit halaman"]));
   }
