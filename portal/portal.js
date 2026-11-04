@@ -979,7 +979,7 @@
       const st = await api(`/cmd?tenant=${encodeURIComponent(S.botId)}&id=${encodeURIComponent(d.id)}`);
       if (!st.ok) { S.pair = { err: st.error, num: n }; refreshMain(); return; }
       if (st.status === 'code' && st.code && st.code !== (S.pair && S.pair.code)) { S.pair = { busy: true, code: st.code, num: n }; refreshMain(); }
-      if (st.status === 'done') { S.pair = { ok: `✅ Bot ${fmtPhone(n)} berhasil tersambung!` }; await refreshMe(); refreshMain(); return; }
+      if (st.status === 'done') { S.pair = { ok: `Bot ${fmtPhone(n)} berhasil tersambung!` }; await refreshMe(); refreshMain(); return; }
       if (st.status === 'error') { S.pair = { err: `Pairing gagal: ${st.error}`, num: n }; await refreshMe(); refreshMain(); return; }
     }
     S.pair = { err: 'Pairing belum selesai (waktu habis). Coba minta kode lagi.', num: n }; refreshMain();
@@ -993,12 +993,11 @@
   // modal perpanjang
   let renewTimer = null;
   function stopRenew() { clearTimeout(renewTimer); renewTimer = null; }
-  async function renewCreate(email, botPhone) {
-    try { localStorage.setItem('bmp-email', email); } catch (e) { /* abaikan */ }
+  async function renewCreate(botPhone) {
     S.modal = { kind: 'renew', step: 'wait', status: 'new', message: 'Membuat tagihan…' }; renderModal();
-    const d = await api('/renew', { tenant: S.botId, email, botPhone });
+    const d = await api('/renew', { tenant: S.botId, botPhone });
     if (!S.modal || S.modal.kind !== 'renew') return;
-    if (!d.ok) { S.modal = { kind: 'renew', step: 'form', error: d.error, email, botPhone }; renderModal(); return; }
+    if (!d.ok) { S.modal = { kind: 'renew', step: 'form', error: d.error, botPhone }; renderModal(); return; }
     S.modal.id = d.id; pollRenew();
   }
   function pollRenew() {
@@ -1021,17 +1020,16 @@
     const b = bot();
     const p = S.me.pricing;
     if (m.step === 'form') {
-      let saved = ''; try { saved = localStorage.getItem('bmp-email') || ''; } catch (e) { /* abaikan */ }
-      const em = h('input', { class: 'input', id: 'rn-e', type: 'email', autocomplete: 'email', placeholder: 'email@kamu.com', value: m.email || b.email || saved });
       const bp = b.realBot ? null : h('input', { class: 'input', id: 'rn-b', inputmode: 'numeric', placeholder: 'nomor WhatsApp bot', value: m.botPhone || '' });
       return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
         h('header', null, [h('h3', { id: 'mt', text: 'Perpanjang sewa bot' }), h('p', { text: p ? `Paket ${p.days} hari — ${rpx(p.price)}${p.note ? ` (${p.note})` : ''}. Bayar QRIS, aktif otomatis.` : 'Bayar QRIS, aktif otomatis.' })]),
         h('div', { class: 'modal-body' }, [
           m.error ? msg('err', m.error) : null,
-          h('div', { class: 'field' }, [h('label', { for: 'rn-e', text: 'Email terdaftar di Baramarket' }), em, h('p', { class: 'hint', text: 'Untuk catatan data penyewa. Bukti pembayaran dikirim ke WhatsApp owner, bukan ke email.' })]),
+          h('div', { class: 'tiles' }, [tile2('Paket', p ? `${p.days} hari` : '-'), tile2('Harga', p ? rpx(p.price) : '-', 'good'), tile2('Aktif sampai (perkiraan)', p ? dateID(Math.max(Date.now(), b.expiredAt || 0) + p.days * 86400000) : '-')]),
+          h('p', { class: 'hint', text: 'Setelah dibayar, masa sewa langsung bertambah dan bukti pembayaran dikirim ke WhatsApp owner.' }),
           bp ? h('div', { class: 'field' }, [h('label', { for: 'rn-b', text: 'Nomor WhatsApp bot' }), bp, h('p', { class: 'hint', text: 'Bot kamu belum tersambung — setelah bayar, kode pairing tampil di sini.' })]) : null,
         ]),
-        h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Batal'), h('button', { class: 'btn primary', type: 'button', onclick: () => renewCreate(em.value.trim(), bp ? bp.value : '') }, [I('qr'), 'Buat QRIS'])]),
+        h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Batal'), h('button', { class: 'btn primary', type: 'button', onclick: () => renewCreate(bp ? bp.value : '') }, [I('qr'), 'Buat QRIS'])]),
       ]);
     }
     if (m.step === 'wait') {
@@ -1219,9 +1217,9 @@
     const sum = v.kind === 'trx'
       ? [tile2('Transaksi (7 hari)', String(rows.length)), tile2('Sukses', String(sukses.length), 'good'), tile2('Omset sukses', rpx(sukses.reduce((t, r) => t + r.harga, 0)))]
       : [tile2('Deposit (7 hari)', String(rows.length)), tile2('Sukses', String(sukses.length), 'good'), tile2('Total masuk', rpx(sukses.reduce((t, r) => t + r.masuk, 0)))];
-    const headCols = v.kind === 'trx' ? ['Waktu', 'Nomor', 'Produk', 'Tujuan', 'Harga', 'Status'] : ['Waktu', 'Nomor', 'Jenis', 'Nominal', 'Status'];
+    const headCols = v.kind === 'trx' ? ['Waktu', 'Invoice', 'Nomor', 'Produk', 'Tujuan', 'Harga', 'Status'] : ['Waktu', 'Nomor', 'Jenis', 'Nominal', 'Status'];
     const rowEl = (r) => h('tr', { tabindex: '0', onclick: () => openModal({ kind: 'hist', r, k: v.kind }), onkeydown: (e) => { if (e.key === 'Enter') openModal({ kind: 'hist', r, k: v.kind }); } }, v.kind === 'trx'
-      ? [h('td', { text: dateTimeID(r.ts) }), h('td', { text: fmtPhone(r.nomor) }), h('td', { class: 'wrap', text: r.item || r.kode }), h('td', { text: r.tujuan }), h('td', { text: rpx(r.harga) }), h('td', null, h('span', { class: `chip ${STC(r.status)}`, text: r.status || '-' }))]
+      ? [h('td', { text: dateTimeID(r.ts) }), h('td', { class: 'inv' }, [h('b', { text: r.invoice || '-' }), r.invoiceProv && r.invoiceProv !== r.invoice ? h('small', { text: /^BARA-/i.test(r.invoiceProv) ? r.invoiceProv : `${provTag(r.provider)} · ${r.invoiceProv}` }) : null]), h('td', { text: fmtPhone(r.nomor) }), h('td', { class: 'wrap', text: r.item || r.kode }), h('td', { text: r.tujuan }), h('td', { text: rpx(r.harga) }), h('td', null, h('span', { class: `chip ${STC(r.status)}`, text: r.status || '-' }))]
       : [h('td', { text: dateTimeID(r.ts) }), h('td', { text: fmtPhone(r.nomor) }), h('td', { class: 'wrap', text: r.tipe || r.metode }), h('td', { text: rpx(r.nominal) }), h('td', null, h('span', { class: `chip ${STC(r.status)}`, text: r.status || '-' }))]);
     return [
       head, h('div', { class: 'tiles' }, sum),
@@ -1233,6 +1231,7 @@
       ]),
     ];
   }
+  const provTag = (p) => (/digi/i.test(p) ? 'DIGI' : /oke/i.test(p) ? 'OKE' : 'BARA');
   async function loadHist(kind, force) {
     const k = `__hist_${kind}`; const v = V(k);
     if (v.busy || (v.data && !force)) return;
@@ -1245,7 +1244,7 @@
   function histCard(m) {
     const r = m.r;
     const F = m.k === 'trx'
-      ? [['Waktu', dateTimeID(r.ts)], ['Status', r.status], ['Invoice', r.invoice], ['Ref', r.ref], ['Nomor pembeli', fmtPhone(r.nomor)], ['Produk', `${r.item} (${r.kode})`], ['Tujuan', r.tujuan], ['Nickname', r.nickname], ['Harga', rpx(r.harga)], ['Profit', rpx(r.profit)], ['Metode', r.metode], ['Provider', r.provider], ['SN', r.sn], ['Keterangan', r.message]]
+      ? [['Waktu', dateTimeID(r.ts)], ['Status', r.status], ['Invoice toko', r.invoice], [`Invoice ${provTag(r.provider)}`, r.invoiceProv], ['Ref', r.ref], ['Nomor pembeli', fmtPhone(r.nomor)], ['Produk', `${r.item} (${r.kode})`], ['Tujuan', r.tujuan], ['Nickname', r.nickname], ['Harga', rpx(r.harga)], ['Profit', rpx(r.profit)], ['Metode', r.metode], ['Provider', r.provider], ['SN', r.sn], ['Keterangan', r.message]]
       : [['Waktu', dateTimeID(r.ts)], ['Status', r.status], ['Ref', r.ref], ['Nomor', fmtPhone(r.nomor)], ['Jenis', r.tipe], ['Metode', r.metode], ['Nominal', rpx(r.nominal)], ['Saldo masuk', rpx(r.masuk)]];
     return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
       h('header', null, [h('h3', { id: 'mt', text: m.k === 'trx' ? 'Detail transaksi' : 'Detail deposit' })]),
