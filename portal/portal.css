@@ -426,3 +426,146 @@ svg.chart .axl{fill:var(--faint);font-size:11px;font-family:var(--font-body)}
 .back.in-top{padding:8px 10px 8px 6px;margin-left:-6px;border:1px solid transparent}
 .back.in-top:hover{background:var(--surface);border-color:var(--line)}
 @media (max-width:560px){ .back.in-top span{display:none} .back.in-top{padding:8px} }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS — lapisan tampilan bergaya iOS: panel kaca tembus pandang yang
+   mem-blur latar bara di belakangnya, pinggiran berkilau, kontrol berbentuk kapsul.
+   Semua aturan di bawah menimpa gaya dasar di atas (urutan berkas = prioritas).
+   ═════════════════════════════════════════════════════════════════════════ */
+:root{
+  --surface:rgba(255,255,255,.06);--surface2:rgba(255,255,255,.1);--bg2:rgba(255,255,255,.045);
+  --line:rgba(255,255,255,.085);--line2:rgba(255,255,255,.15);
+  --glass:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02)),rgba(26,18,16,.46);
+  --glass-hi:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(30,21,19,.62);
+  --blur:blur(26px) saturate(185%);
+  --glass-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 24px 60px -32px rgba(0,0,0,.85);
+  --well:rgba(0,0,0,.24);
+  --r-lg:24px;--r-md:18px;
+}
+body{background:#0e0a09}
+/* latar: bara cair yang bergerak pelan — inilah yang "terlihat" di balik kaca */
+body::before{inset:0;height:auto;background:
+  radial-gradient(42vmax 42vmax at 10% 6%,rgba(245,122,28,.42),transparent 62%),
+  radial-gradient(36vmax 36vmax at 92% 12%,rgba(236,52,66,.34),transparent 62%),
+  radial-gradient(46vmax 46vmax at 78% 96%,rgba(150,58,230,.22),transparent 62%),
+  radial-gradient(34vmax 34vmax at 4% 88%,rgba(255,176,72,.2),transparent 62%)}
+body::after{content:"";position:fixed;z-index:0;pointer-events:none;width:70vmax;height:70vmax;left:30%;top:20%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,120,60,.22),rgba(236,52,66,.1) 55%,transparent);filter:blur(30px);animation:drift 38s ease-in-out infinite alternate}
+@keyframes drift{0%{transform:translate(-30%,-25%) scale(1)}50%{transform:translate(10%,5%) scale(1.15)}100%{transform:translate(-10%,25%) scale(.9)}}
+
+/* ── kaca utama ── */
+.auth-card,.dsec,.editor,.modal-card,.menu-pop,.dock-in,.toast,.item,.botchip,.top,.side-panel{
+  background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-color:rgba(255,255,255,.07);box-shadow:var(--glass-shadow)}
+.modal-card,.menu-pop,.dock-in,.toast{background:var(--glass-hi)}
+/* pinggiran berkilau (specular rim) */
+.auth-card,.dsec,.editor,.modal-card,.dock-in,.item,.botchip{position:relative}
+.auth-card,.dsec,.editor,.modal-card,.menu-pop,.dock-in,.toast,.item,.botchip{isolation:isolate}
+.auth-card::after,.dsec::after,.editor::after,.modal-card::after,.menu-pop::after,.dock-in::after,.toast::after,.item::after,.botchip::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(155deg,rgba(255,255,255,.5),rgba(255,255,255,.1) 22%,rgba(255,255,255,0) 45%,rgba(255,255,255,.04) 70%,rgba(255,255,255,.28));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.auth-card{border-radius:30px;padding:30px 26px}
+.dsec{border-radius:var(--r-lg)}
+.editor{border-radius:var(--r-lg)}
+.modal-card{border-radius:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 40px 100px -30px rgba(0,0,0,.9)}
+.modal-card footer{border-top-color:rgba(255,255,255,.07)}
+.modal{background:rgba(6,4,3,.42);-webkit-backdrop-filter:blur(10px) saturate(120%);backdrop-filter:blur(10px) saturate(120%)}
+.menu-pop{border-radius:20px}
+.menu-pop button{border-radius:12px}
+.toast{border-radius:999px;padding:10px 18px}
+.dock-in{border-radius:24px}
+.item{border-radius:var(--r-md)}
+.item:hover{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03)),rgba(26,18,16,.46)}
+.item.on{border-color:rgba(255,155,74,.55);background:linear-gradient(180deg,rgba(255,155,74,.16),rgba(255,155,74,.03) 70%),rgba(26,18,16,.46)}
+.top{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015)),rgba(18,12,11,.38);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:inset 0 -1px 0 rgba(255,255,255,.04),0 10px 30px -20px rgba(0,0,0,.7)}
+.botchip{border-radius:999px;padding:5px 14px 5px 6px}
+.botchip .av{border-radius:50%}
+/* sidebar: satu panel kaca di layar lebar */
+@media (min-width:861px){
+  .side{padding:10px;border-radius:26px;border:1px solid rgba(255,255,255,.07);background:var(--glass);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);box-shadow:var(--glass-shadow);max-height:calc(100vh - 96px);overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+  .side-note{border-top-color:rgba(255,255,255,.07)}
+}
+.gbtn{border-radius:14px}
+.gbtn:hover{background:rgba(255,255,255,.07)}
+.gbtn.on{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 16px -10px rgba(0,0,0,.7)}
+.gbtn .gi{border-radius:10px;background:rgba(255,255,255,.07)}
+.gbtn.on .gi{background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+@media (max-width:860px){
+  .gbtn{border-radius:999px;border:1px solid rgba(255,255,255,.1);background:var(--glass);-webkit-backdrop-filter:blur(16px) saturate(170%);backdrop-filter:blur(16px) saturate(170%);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  .gbtn.on{border-color:rgba(255,155,74,.5);background:linear-gradient(180deg,rgba(255,155,74,.22),rgba(255,155,74,.06)),rgba(26,18,16,.5)}
+  .gbtn .gi{border-radius:50%}
+}
+
+/* ── kaca bersarang (di dalam panel): tanpa blur, cukup lapisan tipis ── */
+.tile,.dcard,.setrow,.slink,.chg,.botcard,details.box,.pcat,.tbl-wrap,.paircode,.chart-wrap,.empty{border-color:rgba(255,255,255,.08);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018));box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.tile{border-radius:16px}
+.dcard,.setrow,.slink,.botcard,.paircode{border-radius:18px}
+.chart-wrap,.tbl-wrap,details.box,.pcat,.chg{border-radius:16px}
+.slink:hover{background:linear-gradient(180deg,rgba(91,214,154,.16),rgba(91,214,154,.05))}
+.slink.grp:hover{background:linear-gradient(180deg,rgba(37,211,102,.16),rgba(37,211,102,.05))}
+.botcard:hover{background:linear-gradient(180deg,rgba(255,155,74,.16),rgba(255,155,74,.04));border-color:rgba(255,155,74,.5)}
+.paircode{border-color:rgba(255,155,74,.45);background:linear-gradient(180deg,rgba(255,155,74,.2),rgba(255,155,74,.05))}
+.tbl th{background:rgba(255,255,255,.04)}
+.tbl.click tbody tr:hover,.tbl.click tbody tr:focus-visible{background:rgba(255,255,255,.06)}
+.ed-right{background:rgba(0,0,0,.16)}
+.empty{border-style:solid}
+.msg{border-radius:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.skel .sk{background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.13),rgba(255,255,255,.05));background-size:200% 100%}
+
+/* ── kontrol kapsul ── */
+.btn{border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 8px 20px -14px rgba(0,0,0,.8);transition:background .2s,border-color .2s,transform .15s,box-shadow .2s}
+.btn:hover{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08));border-color:rgba(255,255,255,.22)}
+.btn:active{transform:scale(.97)}
+.btn.sm{border-radius:999px}
+.btn.primary{background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 52%),linear-gradient(135deg,var(--flame-a),var(--flame-b));border:1px solid rgba(255,190,150,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -6px 14px -6px rgba(120,0,20,.45),0 10px 28px -10px rgba(236,52,66,.7)}
+.btn.primary:hover{filter:brightness(1.07) saturate(1.05)}
+.btn.ghost{background:transparent;border-color:transparent;box-shadow:none}
+.btn.ghost:hover{background:rgba(255,255,255,.08)}
+.btn.danger{color:#FF9B8C}
+.btn[disabled]{transform:none}
+.back.in-top{border-radius:999px}
+.back.in-top:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.1)}
+.pv-tabs{border-radius:999px;padding:3px;background:var(--well);border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+.pv-tabs button{border-radius:999px;padding:6px 12px;transition:background .2s,color .2s,box-shadow .2s}
+.pv-tabs button.on{background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.1));color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 3px 10px -2px rgba(0,0,0,.5)}
+.tag{border-radius:999px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
+.tag:hover{background:rgba(255,155,74,.16)}
+.chip,.badge{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+/* saklar gaya iOS */
+.switch{width:51px;height:31px;border:0;background:rgba(120,120,128,.36);box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+.switch>span{top:2px;left:2px;width:27px;height:27px;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.3),0 1px 1px rgba(0,0,0,.16)}
+.switch.on{background:#34C759}
+.switch.on>span{transform:translateX(20px);background:#fff}
+
+/* ── isian: "sumur" kaca yang sedikit lebih gelap ── */
+.input,.phone,.otp input,.search input,textarea.ta,input.ta{background:var(--well);border-color:rgba(255,255,255,.1);box-shadow:inset 0 1px 2px rgba(0,0,0,.3)}
+.input,.phone,input.ta{border-radius:16px}
+textarea.ta{border-radius:18px}
+.otp input{border-radius:14px}
+.search input{border-radius:999px;background:rgba(0,0,0,.2)}
+.input:focus,.otp input:focus,textarea.ta:focus,input.ta:focus,.phone:focus-within,.search input:focus{border-color:rgba(255,155,74,.7);box-shadow:inset 0 1px 2px rgba(0,0,0,.3),0 0 0 4px rgba(255,155,74,.16)}
+.phone span{border-right-color:rgba(255,255,255,.08)}
+select.input option{background:#1f1714;color:var(--ink)}
+.box-in pre{background:rgba(0,0,0,.24);border-color:rgba(255,255,255,.08);border-radius:14px}
+.qris-wrap{border-radius:20px;box-shadow:0 10px 30px -12px rgba(0,0,0,.6)}
+.banner-img{border-radius:18px}
+.brand .mark{box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 22px -8px rgba(236,52,66,.7)}
+.steps i{background:rgba(255,255,255,.1)}
+
+/* ── layar kecil: blur lebih ringan supaya HP tetap lancar ── */
+@media (max-width:860px){
+  :root{--blur:blur(18px) saturate(175%)}
+  .dsec{border-radius:22px}
+}
+/* ── tanpa dukungan blur / pengguna memilih kurangi transparansi: kaca jadi pekat ── */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--glass:#221917;--glass-hi:#2a201d}
+}
+@media (prefers-reduced-transparency:reduce){
+  :root{--glass:#221917;--glass-hi:#2a201d}
+  body::after{display:none}
+}
+@media (prefers-reduced-motion:reduce){ body::after{animation:none} }
+/* popup menu ada di dalam header kaca (blur bertingkat tidak bekerja) → kaca pekat supaya isi di belakang tidak tembus */
+.menu-pop{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),#221917}
+@media (min-width:861px){ .shell{grid-template-columns:276px minmax(0,1fr)} }
