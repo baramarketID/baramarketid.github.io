@@ -40,6 +40,12 @@
     image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
     phone: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
     more: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+    dash: '<path d="M3 13h8V3H3zM13 21h8v-8h-8zM13 3v6h8V3zM3 21h8v-4H3z"/>',
+    refresh: '<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
+    sheet: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+    ext: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+    qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
   };
   const icon = (n, cls) => `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
 
@@ -130,7 +136,10 @@
   }
 
   // ───────────────────────── nilai wording ─────────────────────────
-  const items = () => (S.cat ? S.cat.items : []);
+  /** Wording get2 (Digiflazz) / get3 (PPOB) disembunyikan bila fiturnya tidak aktif di bot ini. */
+  const featureOn = (it) => { const f = S.state && S.state.features; return !it.need || !f || f[it.need] !== false; };
+  const items = () => (S.cat ? S.cat.items.filter(featureOn) : []);
+  const DASH = '__dash';
   const isProfile = (it) => it.g === 'profil';
   function liveCustom(it) {
     const st = S.state || {};
@@ -492,7 +501,8 @@
     for (const [k, v] of Object.entries((d.draft && d.draft.values) || {})) if (S.byKey[k] && (v === null || typeof v === 'string')) S.draft[k] = v;
     for (const it of items()) if (hasDraft(it.key) && changeOf(it) === undefined) delete S.draft[it.key];
     S.saveAt = (d.draft && d.draft.updatedAt) || 0;
-    S.group = S.group && S.cat.groups.some((g) => g.id === S.group) ? S.group : (S.cat.groups[0] || {}).id;
+    S.group = S.group && (S.group === DASH || S.cat.groups.some((g) => g.id === S.group)) ? S.group : DASH;
+    if (S.dashFor !== id) { S.dash = null; S.dashFor = id; }
     const inGroup = items().filter((x) => x.g === S.group);
     S.sel = inGroup.some((x) => x.key === S.sel) ? S.sel : (inGroup[0] || {}).key;
     renderApp();
@@ -552,16 +562,19 @@
     q.addEventListener('input', () => { S.q = q.value; refreshMain(); });
     return h('aside', { class: 'side' }, [
       h('div', { class: 'search' }, [I('search'), q]),
-      h('nav', { class: 'groups', id: 'groups', 'aria-label': 'Kelompok pengaturan' }, S.cat.groups.map((g) => h('button', {
+      h('nav', { class: 'groups', id: 'groups', 'aria-label': 'Kelompok pengaturan' }, [h('button', {
+        class: `gbtn${S.group === DASH && !S.q ? ' on' : ''}`, type: 'button', 'aria-current': S.group === DASH && !S.q ? 'true' : null,
+        onclick: () => { S.group = DASH; S.q = ''; renderApp(); },
+      }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]), h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
         class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
         onclick: () => { S.group = g.id; S.q = ''; const first = items().find((x) => x.g === g.id); S.sel = first ? first.key : ''; renderApp(); },
-      }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)]))),
+      }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)]))]),
       h('p', { class: 'side-note', text: 'Perubahan tersimpan otomatis sebagai draf. Bot baru berubah setelah kamu menekan Luncurkan.' }),
     ]);
   }
   function refreshSide() {
     const nav = $('#groups'); if (!nav) return;
-    nav.querySelectorAll('.gbtn').forEach((b) => { const old = b.querySelector('.badge'); if (old) old.replaceWith(groupBadge(b.getAttribute('data-g'))); });
+    nav.querySelectorAll('.gbtn[data-g]').forEach((b) => { const old = b.querySelector('.badge'); if (old) old.replaceWith(groupBadge(b.getAttribute('data-g'))); });
   }
 
   function visibleItems() {
@@ -572,6 +585,7 @@
     return items().filter((i) => i.g === S.group);
   }
   function renderMain() {
+    if (S.group === DASH && !S.q.trim()) return renderDash();
     const g = S.cat.groups.find((x) => x.id === S.group) || {};
     const list = visibleItems();
     const head = S.q.trim()
@@ -595,6 +609,202 @@
     if (c) { const st = statusOf(it); c.className = `chip ${st}`; c.textContent = STATUS_LABEL[st]; }
     const ch = $('#ed-chip'); if (ch) { const st = statusOf(it); ch.className = `chip ${st}`; ch.textContent = STATUS_LABEL[st]; }
   }
+
+
+  // ───────────────────────── DASHBOARD ─────────────────────────
+  const rpx = (n) => `Rp ${Math.round(Number(n) || 0).toLocaleString('id-ID')}`;
+  const timeID = (ms) => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+  const dayID = (d) => { const [y, m, dd] = String(d).split('-').map(Number); return new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, dd))); };
+  /** Jalankan perintah host lewat API, tunggu hasilnya (maks waitMs). */
+  async function hostRun(path, body, waitMs = 45000) {
+    const d = await api(path, body);
+    if (!d.ok) return d;
+    const t0 = Date.now();
+    let delay = 700;
+    while (Date.now() - t0 < waitMs) {
+      await new Promise((r) => setTimeout(r, delay)); delay = Math.min(2000, delay + 300);
+      const st = await api(`/cmd?tenant=${encodeURIComponent(S.botId)}&id=${encodeURIComponent(d.id)}`);
+      if (!st.ok) return st;
+      if (st.status === 'done') return { ok: true, result: st.result };
+      if (st.status === 'error') return { ok: false, error: st.error };
+    }
+    return { ok: false, error: 'Bot belum merespons. Coba lagi sebentar lagi.' };
+  }
+  async function loadDash(force) {
+    if (S.dashBusy) return;
+    S.dashBusy = true; S.dashErr = '';
+    if (S.group === DASH) refreshMain();
+    const id = S.botId;
+    const r = await hostRun('/dashboard', { tenant: id, force: Boolean(force) });
+    if (id !== S.botId) { S.dashBusy = false; return; }
+    S.dashBusy = false;
+    if (r.ok) { S.dash = r.result; S.dashAt = Date.now(); } else S.dashErr = r.error || 'Gagal memuat dashboard.';
+    if (S.group === DASH && !S.q.trim()) refreshMain();
+  }
+  const card = (cls, kids) => h('div', { class: `dcard ${cls || ''}` }, kids);
+  function balCard(title, sub, b, extra) {
+    if (!b) return null;
+    if (!b.ok) return card('bad', [h('div', { class: 'dl', text: title }), h('div', { class: 'dbig muted', text: 'Gagal dicek' }), h('div', { class: 'dsub bad', text: b.error || 'error' }), extra || null]);
+    return card('', [h('div', { class: 'dl', text: title }), h('div', { class: 'dbig', text: rpx(b.balance) }), sub ? h('div', { class: 'dsub', text: sub }) : null, extra || null]);
+  }
+  function renderDash() {
+    const d = S.dash;
+    const head = h('div', { class: 'ghead row between' }, [
+      h('div', null, [h('h2', { text: 'Dashboard' }), h('p', { text: 'Saldo, rekap, dan pencairan QRIS bot kamu — langsung dari bot.' })]),
+      h('div', { class: 'row' }, [
+        S.dashAt ? h('span', { class: 'hint', text: `Diperbarui ${timeID(S.dashAt)} WIB` }) : null,
+        h('button', { class: 'btn sm', type: 'button', disabled: S.dashBusy ? true : null, onclick: () => loadDash(true) }, [S.dashBusy ? h('span', { class: 'spin' }) : I('refresh'), S.dashBusy ? 'Memuat…' : 'Segarkan']),
+      ]),
+    ]);
+    if (!d && !S.dashBusy && !S.dashErr) { setTimeout(() => loadDash(false), 0); }
+    if (!d) {
+      if (S.dashErr) return [head, msg('err', S.dashErr), h('div', null, h('button', { class: 'btn', type: 'button', onclick: () => loadDash(true) }, 'Coba lagi'))];
+      return [head, h('div', { class: 'dgrid' }, [1, 2, 3].map(() => card('skel', [h('div', { class: 'sk w40' }), h('div', { class: 'sk w70 big' }), h('div', { class: 'sk w55' })]))), h('p', { class: 'hint', text: 'Mengambil saldo provider & rekap dari bot… (beberapa detik)' })];
+    }
+    const out = [head];
+    if (S.dashErr) out.push(msg('warn', `Gagal memperbarui: ${S.dashErr}. Menampilkan data terakhir.`));
+    // ── saldo ──
+    const f = d.features || {};
+    const b = d.balances || {};
+    const depoBtn = f.depoweb ? h('button', { class: 'btn primary sm', type: 'button', onclick: () => openModal({ kind: 'depo', step: 'form' }) }, [I('plus'), 'Deposit Saldo Web']) : null;
+    const u = d.users || {};
+    const usersCard = u.error ? card('bad', [h('div', { class: 'dl', text: 'Saldo semua user' }), h('div', { class: 'dsub bad', text: u.error })]) : card('', [
+      h('div', { class: 'dl', text: 'Saldo semua user' }), h('div', { class: 'dbig', text: rpx(u.total) }), h('div', { class: 'dsub', text: `${u.count || 0} user terdaftar · kewajiban toko` }),
+      d.providerTotal !== null && d.providerTotal !== undefined
+        ? (d.providerTotal >= (u.total || 0) ? h('span', { class: 'chip custom', text: '✓ Aman: saldo provider cukup' }) : h('span', { class: 'chip err', text: `Waspada: kurang ${rpx((u.total || 0) - d.providerTotal)}` }))
+        : null,
+    ]);
+    out.push(h('section', { class: 'dsec' }, [
+      h('h3', { class: 'dh', text: 'Saldo' }),
+      h('div', { class: 'dgrid' }, [
+        balCard('Saldo Baramarket.id', b.bara && b.bara.ok ? [b.bara.name, b.bara.membership].filter((x) => x && x !== '-').join(' · ') + (b.bara.email && b.bara.email !== '-' ? ` · ${b.bara.email}` : '') : '', b.bara, depoBtn),
+        f.digi ? balCard('Saldo Digiflazz', b.digi && b.digi.ok ? b.digi.username : '', b.digi) : null,
+        f.oke ? balCard('Saldo OkeConnect (PPOB)', '', b.oke) : null,
+        usersCard,
+      ]),
+    ]));
+    // ── rekap ──
+    const per = S.dashPer || 'today';
+    const seg = h('div', { class: 'pv-tabs', role: 'tablist' }, [['today', 'Hari ini'], ['week', 'Minggu ini'], ['month', 'Bulan ini']].map(([k, l]) => h('button', { type: 'button', role: 'tab', class: per === k ? 'on' : '', 'aria-selected': String(per === k), onclick: () => { S.dashPer = k; refreshMain(); } }, l)));
+    const tile = (label, val, cls) => h('div', { class: `tile ${cls || ''}` }, [h('span', { text: label }), h('b', { text: val })]);
+    let rekapBody;
+    if (d.rekap) {
+      const o = d.rekap.omset[per], p = d.rekap.pay[per];
+      rekapBody = [
+        h('div', { class: 'tiles' }, [tile('Transaksi sukses', String(o.count)), tile('Omset', rpx(o.omset)), tile('Modal', rpx(o.modal)), tile('Profit', rpx(o.profit), 'good')]),
+        h('div', { class: 'dl', style: 'margin-top:14px', text: 'Pembayaran QRIS diterima' }),
+        h('div', { class: 'tiles' }, [tile('Jumlah bayar', `${p.count}x`), tile('Dibayar pembeli', rpx(p.dibayar)), tile('Biaya layanan 0,3%', rpx(p.biaya)), tile('Bisa dicairkan', rpx(p.cair), 'good')]),
+      ];
+    } else rekapBody = [msg('warn', `Rekap belum bisa dihitung${d.rekapError ? ': ' + d.rekapError : ''}.`)];
+    out.push(h('section', { class: 'dsec' }, [h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Rekap omset & profit' }), seg]), ...rekapBody]));
+    // ── pencairan ──
+    const po = d.payouts;
+    const ST = { Kosong: ['def', 'Belum dicairkan'], Proses: ['draft', 'Diproses'], Sukses: ['custom', 'Sudah dicairkan'] };
+    let poBody;
+    if (!po) poBody = [msg('info', 'Status pencairan belum tersedia.')];
+    else if (!po.rows.length) poBody = [h('p', { class: 'hint', text: 'Belum ada pembayaran QRIS yang masuk.' })];
+    else poBody = [
+      h('div', { class: 'tiles' }, [tile('Belum dicairkan', rpx(po.belumTotal), po.belumTotal ? 'warn' : ''), tile('Hari belum dicairkan', String(po.belumHari))]),
+      h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [
+        h('thead', null, h('tr', null, ['Tanggal', 'Trx', 'Bisa dicairkan', 'Status', ''].map((x) => h('th', { text: x })))),
+        h('tbody', null, po.rows.map((r) => h('tr', null, [
+          h('td', { text: dayID(r.day) }), h('td', { text: String(r.count) }), h('td', { text: rpx(r.cair) }),
+          h('td', null, h('span', { class: `chip ${(ST[r.status] || ST.Kosong)[0]}`, text: (ST[r.status] || ST.Kosong)[1] })),
+          h('td', null, r.proof ? h('a', { href: r.proof, target: '_blank', rel: 'noopener noreferrer', text: 'Bukti' }) : r.proofSent ? h('span', { class: 'hint', text: 'Bukti via WA' }) : null),
+        ]))),
+      ])),
+    ];
+    out.push(h('section', { class: 'dsec' }, [h('h3', { class: 'dh', text: 'Pencairan QRIS' }), ...poBody]));
+    // ── sheet ──
+    const sh = d.sheet || {};
+    const link = (url, t, s2) => h('a', { class: 'slink', href: url, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'gi', icon: 'sheet' }), h('span', { class: 'tx' }, [h('b', { text: t }), h('small', { text: s2 })]), I('ext')]);
+    out.push(h('section', { class: 'dsec' }, [
+      h('h3', { class: 'dh', text: 'Google Sheet' }),
+      sh.enabled && /^https:\/\/docs\.google\.com\//.test(sh.url || '')
+        ? h('div', { class: 'dgrid two' }, [link(sh.omset || sh.url, 'Rekap Omset & Profit', 'Omset, modal & profit harian · mingguan · bulanan'), link(sh.bayar || sh.url, 'Rekap Pembayaran & Status Pencairan', 'Pembayaran QRIS + kolom Status Dicairkan')])
+        : msg('info', 'Google Sheet rekap belum dipasang untuk bot ini. Hubungi admin Baramarket untuk memasangnya.'),
+    ]));
+    if (d.bot && !d.bot.running) out.push(msg('warn', 'Bot kamu sedang tidak tersambung ke WhatsApp. Saldo & rekap tetap tampil, tapi deposit dari website butuh bot yang aktif.'));
+    return out;
+  }
+
+  // ── deposit saldo web (modal) ──
+  let depoTimer = null, depoTick = null;
+  function stopDepo() { clearTimeout(depoTimer); clearInterval(depoTick); depoTimer = null; depoTick = null; }
+  async function depoCreate(nominal) {
+    S.modal = { kind: 'depo', step: 'creating', nominal }; renderModal();
+    const r = await hostRun('/depoweb', { tenant: S.botId, nominal });
+    if (!S.modal || S.modal.kind !== 'depo') return;
+    if (!r.ok) { S.modal = { kind: 'depo', step: 'form', nominal, error: r.error }; renderModal(); return; }
+    S.modal = { kind: 'depo', step: 'qris', q: r.result, status: 'Menunggu Bayar' }; renderModal(); pollDepo();
+  }
+  function pollDepo() {
+    clearTimeout(depoTimer);
+    depoTimer = setTimeout(async () => {
+      const m = S.modal; if (!m || m.kind !== 'depo' || m.step !== 'qris') return;
+      const st = await api(`/depo?tenant=${encodeURIComponent(S.botId)}&ref=${encodeURIComponent(m.q.ref)}`);
+      if (!S.modal || S.modal !== m) return;
+      if (st.ok && st.status && st.status !== m.status) {
+        m.status = st.status; m.info = st;
+        if (['Sukses', 'Expired', 'Dibatalkan', 'Perlu Cek Manual'].includes(st.status)) { m.step = 'end'; stopDepo(); renderModal(); if (st.status === 'Sukses') { S.dash = null; loadDash(true); } return; }
+        renderModal();
+      }
+      if (Date.now() > Number(m.q.expireAt) + 60000) { m.step = 'end'; m.status = 'Expired'; stopDepo(); renderModal(); return; }
+      pollDepo();
+    }, 4000);
+  }
+  function depoCard(m) {
+    const close = () => { stopDepo(); closeModal(); };
+    if (m.step === 'form' || m.step === 'creating') {
+      const inp = h('input', { class: 'input', id: 'depo-n', inputmode: 'numeric', placeholder: 'mis. 100000', value: m.nominal ? String(m.nominal) : '', 'aria-label': 'Nominal deposit' });
+      const go = () => { const n = Number(String(inp.value).replace(/\D/g, '')); if (!n || n < 1000) { inp.focus(); inp.classList.add('bad'); return; } depoCreate(n); };
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+      const chips = [50000, 100000, 250000, 500000, 1000000].map((v) => h('button', { type: 'button', class: 'tag', onclick: () => { inp.value = String(v); inp.focus(); } }, rpx(v)));
+      return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+        h('header', null, [h('h3', { id: 'mt', text: 'Deposit Saldo Web Baramarket' }), h('p', { text: 'Isi saldo akun web Baramarket milik bot kamu lewat QRIS. Saldo masuk otomatis setelah dibayar, sebesar total yang dibayar.' })]),
+        h('div', { class: 'modal-body' }, [
+          m.error ? msg('err', m.error) : null,
+          h('div', { class: 'field' }, [h('label', { for: 'depo-n', text: 'Nominal (Rp)' }), inp, h('p', { class: 'hint', text: 'Minimal Rp 1.000, maksimal Rp 10.000.000.' })]),
+          h('div', { class: 'tags' }, chips),
+        ]),
+        h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Batal'), h('button', { class: 'btn primary', type: 'button', disabled: m.step === 'creating' ? true : null, onclick: go }, m.step === 'creating' ? [h('span', { class: 'spin' }), 'Membuat QRIS…'] : [I('qr'), 'Buat QRIS'])]),
+      ]);
+    }
+    if (m.step === 'qris') {
+      const q = m.q;
+      const left = h('b', { id: 'depo-left' });
+      const tick = () => { const s2 = Math.max(0, Math.round((Number(q.expireAt) - Date.now()) / 1000)); left.textContent = `${Math.floor(s2 / 60)}:${String(s2 % 60).padStart(2, '0')}`; };
+      clearInterval(depoTick); depoTick = setInterval(tick, 1000); tick();
+      const img = q.png ? h('img', { class: 'qris', alt: 'QRIS deposit saldo web', src: `data:image/png;base64,${String(q.png).replace(/[^A-Za-z0-9+/=]/g, '')}` }) : msg('info', 'QRIS untuk deposit ini sudah dibuat sebelumnya. Tunggu sampai kedaluwarsa atau batalkan untuk membuat yang baru.');
+      return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+        h('header', null, [h('h3', { id: 'mt', text: 'Scan QRIS untuk membayar' }), h('p', { text: m.status === 'Diproses' ? 'Pembayaran diterima — sedang menambah saldo web…' : 'Bayar pakai aplikasi bank / e-wallet apa saja. Halaman ini otomatis berubah setelah dibayar.' })]),
+        h('div', { class: 'modal-body' }, [
+          h('div', { class: 'qris-wrap' }, [img]),
+          h('div', { class: 'tiles' }, [tile2('Total bayar', rpx(q.total), 'good'), tile2('Saldo masuk', rpx(q.kredit || q.total)), tile2('Berlaku', null, '', left)]),
+          h('p', { class: 'hint', text: `Akun: ${q.email} · Ref ${q.ref}${q.kodeUnik ? ` · termasuk kode unik ${rpx(q.kodeUnik)}` : ''}` }),
+          h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: m.status === 'Diproses' ? 'Memproses…' : 'Menunggu pembayaran…' })]),
+        ]),
+        h('footer', null, [
+          h('button', { class: 'btn ghost danger', type: 'button', onclick: async () => {
+            const r = await hostRun('/depoweb-cancel', { tenant: S.botId, ref: q.ref }, 20000);
+            if (!r.ok) { toast(r.error || 'Gagal membatalkan', 'err'); return; }
+            stopDepo(); closeModal(); toast('Deposit dibatalkan. Kalau terlanjur dibayar, saldo tetap masuk.');
+          } }, 'Batalkan'),
+          h('button', { class: 'btn', type: 'button', onclick: close }, 'Tutup (lanjut di latar)'),
+        ]),
+      ]);
+    }
+    const st = m.status, info = m.info || {};
+    const okk = st === 'Sukses';
+    return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+      h('header', null, [h('h3', { id: 'mt', text: okk ? 'Deposit berhasil' : st === 'Perlu Cek Manual' ? 'Perlu dicek admin' : st === 'Dibatalkan' ? 'Deposit dibatalkan' : 'QRIS kedaluwarsa' })]),
+      h('div', { class: 'modal-body' }, okk
+        ? [h('div', { class: 'big-ok' }, [h('span', { class: 'c' }, I('check')), h('b', { text: `Saldo web bertambah ${rpx(info.kredit || info.total)}` }), info.saldoSesudah !== undefined ? h('p', { class: 'hint', text: `Saldo sekarang ${rpx(info.saldoSesudah)} (sebelumnya ${rpx(info.saldoSebelum)})` }) : null])]
+        : [msg(st === 'Perlu Cek Manual' ? 'err' : 'info', st === 'Perlu Cek Manual' ? `Pembayaran sudah diterima tapi saldo web belum masuk${info.message ? ` (${info.message})` : ''}. Admin sudah diberi tahu — hubungi admin Baramarket bila perlu.` : 'Tidak ada saldo yang terpotong. Buat deposit baru bila masih perlu.')]),
+      h('footer', null, [h('button', { class: 'btn primary', type: 'button', onclick: close }, 'Selesai')]),
+    ]);
+  }
+  function tile2(label, val, cls, node) { return h('div', { class: `tile ${cls || ''}` }, [h('span', { text: label }), node || h('b', { text: val })]); }
 
   // ───────────────────────── editor ─────────────────────────
   function renderEditor(it) {
@@ -751,7 +961,7 @@
   // ───────────────────────── modal ─────────────────────────
   function openModal(m) { S.modal = m; renderModal(); }
   function closeModal() { S.modal = null; const el = $('.modal'); if (el) el.remove(); }
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal && S.modal.kind !== 'progress') { closeModal(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal && S.modal.kind !== 'progress') { if (S.modal.kind === 'depo') stopDepo(); closeModal(); } });
   function renderModal() {
     const old = $('.modal'); if (old) old.remove();
     const m = S.modal; if (!m) return;
@@ -782,6 +992,8 @@
         ]),
         h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: closeModal }, 'Nanti dulu'), h('button', { class: 'btn primary', type: 'button', disabled: bad.length || !ch.length ? true : null, onclick: publish }, [I('rocket'), 'Luncurkan sekarang'])]),
       ]);
+    } else if (m.kind === 'depo') {
+      card = depoCard(m);
     } else if (m.kind === 'progress') {
       const step = (i, label) => h('div', { class: m.step > i ? 'done' : m.step === i ? 'on' : '' }, [h('span', { class: 'ck' }, m.step > i ? I('check') : null), label]);
       card = h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt', 'aria-busy': String(m.step < 3) }, [
@@ -792,7 +1004,7 @@
         h('footer', null, m.step >= 3 || m.error ? [m.error ? h('button', { class: 'btn', type: 'button', onclick: () => openModal({ kind: 'review' }) }, 'Kembali') : null, h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Selesai')] : [h('span', { class: 'hint', text: 'Jangan tutup halaman ini…' })]),
       ]);
     }
-    const ov = h('div', { class: 'modal', onclick: (e) => { if (e.target === ov && m.kind !== 'progress') closeModal(); } }, card);
+    const ov = h('div', { class: 'modal', onclick: (e) => { if (e.target === ov && m.kind !== 'progress' && m.kind !== 'depo') closeModal(); } }, card);
     document.body.appendChild(ov);
     const f = card.querySelector('footer .btn.primary:not([disabled])') || card.querySelector('button');
     if (f) f.focus();
