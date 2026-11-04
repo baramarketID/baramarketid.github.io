@@ -47,6 +47,7 @@
     ext: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    chart: '<path d="M3 3v18h18"/><path d="M7 15v2M11 11v6M15 7v10M19 12v5"/>',
     chat: '<path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/>',
   };
   const icon = (n, cls) => `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
@@ -83,6 +84,7 @@
   const S = {
     phone: '', to: '', cooldownUntil: 0, me: null, botId: '', cat: null, byKey: {}, state: null, draft: {}, hostAlive: true,
     group: '', sel: '', q: '', saveState: '', saveAt: 0, saveTimer: null, pv: 'new', modal: null, menu: false, booted: false,
+    v: {}, pair: null, chartM: 'omset',
   };
   const ls = { get: (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* abaikan */ } } };
 
@@ -503,8 +505,8 @@
     for (const [k, v] of Object.entries((d.draft && d.draft.values) || {})) if (S.byKey[k] && (v === null || typeof v === 'string')) S.draft[k] = v;
     for (const it of items()) if (hasDraft(it.key) && changeOf(it) === undefined) delete S.draft[it.key];
     S.saveAt = (d.draft && d.draft.updatedAt) || 0;
-    S.group = S.group && (S.group === DASH || S.cat.groups.some((g) => g.id === S.group)) ? S.group : DASH;
-    if (S.dashFor !== id) { S.dash = null; S.dashFor = id; }
+    S.group = S.group && (S.group === DASH || (VIEWS[S.group] && viewOn(S.group)) || S.cat.groups.some((g) => g.id === S.group)) ? S.group : DASH;
+    if (S.dashFor !== id) { S.dash = null; S.dashFor = id; S.v = {}; S.pair = null; }
     const inGroup = items().filter((x) => x.g === S.group);
     S.sel = inGroup.some((x) => x.key === S.sel) ? S.sel : (inGroup[0] || {}).key;
     renderApp();
@@ -518,6 +520,12 @@
     const notes = h('div', { class: 'banner', id: 'banners' });
     if (!S.hostAlive) notes.appendChild(msg('warn', 'Server bot sedang offline atau restart. Kamu tetap bisa mengedit — perubahan tersimpan sebagai draf dan bisa diluncurkan setelah server online.'));
     if (!S.state) notes.appendChild(msg('warn', 'Bot ini belum menyalin pengaturannya ke website, jadi yang tampil adalah wording bawaan. Kalau kamu pernah mengubah wording lewat chat, tunggu bot online lalu muat ulang.'));
+    const nt = S.me && S.me.notice;
+    if (nt && ls.get('bmp-notice') !== String(nt.at)) {
+      const box = h('div', { class: `msg ${nt.level === 'warn' ? 'warn' : 'info'} notice` }, [I(nt.level === 'warn' ? 'alert' : 'info'), h('span', null, [h('b', { text: 'Info dari admin Baramarket: ' }), nt.text]),
+        h('button', { class: 'btn ghost sm', type: 'button', 'aria-label': 'Tutup info', onclick: () => { ls.set('bmp-notice', String(nt.at)); box.remove(); } }, I('x'))]);
+      notes.appendChild(box);
+    }
     if (notes.childNodes.length) root.appendChild(notes);
     const shell = h('div', { class: 'shell' }, [renderSide(), h('div', { class: 'main', id: 'main' }, renderMain())]);
     root.appendChild(shell);
@@ -568,13 +576,19 @@
       h('nav', { class: 'groups', id: 'groups', 'aria-label': 'Kelompok pengaturan' }, [h('button', {
         class: `gbtn${S.group === DASH && !S.q ? ' on' : ''}`, type: 'button', 'aria-current': S.group === DASH && !S.q ? 'true' : null,
         onclick: () => { S.group = DASH; S.q = ''; renderApp(); },
-      }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]), h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
+      }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]),
+      h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__ppob'].filter(viewOn).map(viewBtn),
+      h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
         class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
         onclick: () => { S.group = g.id; S.q = ''; const first = items().find((x) => x.g === g.id); S.sel = first ? first.key : ''; renderApp(); },
-      }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)]))]),
+      }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)])), h('div', { class: 'gsep', text: 'Bantuan' }), viewBtn('__help')]),
       h('p', { class: 'side-note', text: 'Perubahan tersimpan otomatis sebagai draf. Bot baru berubah setelah kamu menekan Luncurkan.' }),
       h('a', { class: 'side-link', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [I('chat'), 'Grup diskusi penyewa']),
     ]);
+  }
+  function viewBtn(k) {
+    const on = S.group === k && !S.q;
+    return h('button', { class: `gbtn${on ? ' on' : ''}`, type: 'button', 'aria-current': on ? 'true' : null, onclick: () => { S.group = k; S.q = ''; renderApp(); } }, [h('span', { class: 'gi', icon: VIEWS[k].icon }), h('span', { class: 'gl', text: VIEWS[k].label })]);
   }
   function refreshSide() {
     const nav = $('#groups'); if (!nav) return;
@@ -590,6 +604,10 @@
   }
   function renderMain() {
     if (S.group === DASH && !S.q.trim()) return renderDash();
+    if (VIEWS[S.group] && !S.q.trim()) {
+      if (!viewOn(S.group)) { S.group = DASH; return renderDash(); }
+      return ({ __bot: renderBot, __profit: renderProfit, __users: renderUsers, __hist: renderHist, __banner: renderBanner, __ppob: renderPpob, __help: renderHelp })[S.group]();
+    }
     const g = S.cat.groups.find((x) => x.id === S.group) || {};
     const list = visibleItems();
     const head = S.q.trim()
@@ -704,6 +722,16 @@
           h('div', { class: 'tx' }, [h('b', { text: 'Mode order' }), h('small', { text: 'Di mana pembeli boleh order TP / TPO dan deposit saldo.' })]),
           S.ordBusy ? h('span', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: 'Menyimpan…' })]) : segO,
         ]),
+        d.settings.rekapHarian !== undefined ? h('div', { class: 'setrow' }, [
+          h('div', { class: 'tx' }, [h('b', { text: 'Rekap harian otomatis' }), h('small', { text: 'Setiap pagi bot mengirim rekap omset & profit kemarin ke WhatsApp owner.' })]),
+          S.rkBusy ? h('span', { class: 'spin' }) : h('button', { type: 'button', role: 'switch', class: `switch${d.settings.rekapHarian ? ' on' : ''}`, 'aria-checked': String(Boolean(d.settings.rekapHarian)), 'aria-label': 'Rekap harian otomatis', onclick: async () => {
+            const on = !d.settings.rekapHarian; S.rkBusy = true; refreshMain();
+            const r = await callFn('prefs.setRekap', { on }, 30000);
+            S.rkBusy = false;
+            if (r.ok) { d.settings.rekapHarian = Boolean(r.result && r.result.rekapHarian); toast(on ? 'Rekap harian dinyalakan.' : 'Rekap harian dimatikan.'); } else toast(r.error || 'Gagal menyimpan', 'err');
+            refreshMain();
+          } }, h('span')),
+        ]) : null,
       ]));
     }
     out.push(h('section', { class: 'dsec' }, [
@@ -729,6 +757,7 @@
       ];
     } else rekapBody = [msg('warn', `Rekap belum bisa dihitung${d.rekapError ? ': ' + d.rekapError : ''}.`)];
     out.push(h('section', { class: 'dsec' }, [h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Rekap omset & profit' }), seg]), ...rekapBody]));
+    out.push(chartSection(d));
     // ── pencairan ──
     const po = d.payouts;
     const ST = { Kosong: ['def', 'Belum dicairkan'], Proses: ['draft', 'Diproses'], Sukses: ['custom', 'Sudah dicairkan'] };
@@ -844,6 +873,561 @@
     ]);
   }
   function tile2(label, val, cls, node) { return h('div', { class: `tile ${cls || ''}` }, [h('span', { text: label }), node || h('b', { text: val })]); }
+
+
+  // ───────────────────────── HALAMAN TOKO & BOT (fitur portal) ─────────────────────────
+  const VIEWS = {
+    __bot: { label: 'Bot & Sewa', icon: 'phone', desc: 'Status WhatsApp bot, pairing / putuskan nomor, dan perpanjang masa sewa.' },
+    __profit: { label: 'Profit per Role', icon: 'chart', desc: 'Atur untung per role. Harga jual = harga modal + persen profit.' },
+    __users: { label: 'User', icon: 'users', desc: 'Daftar pembeli terdaftar: cari, ubah role, tambah / kurangi saldo.' },
+    __hist: { label: 'Riwayat', icon: 'list', desc: 'Transaksi & deposit 7 hari terakhir. Cari pakai nomor, invoice, tujuan, atau produk.' },
+    __banner: { label: 'Banner Toko', icon: 'image', desc: 'Gambar yang tampil di atas halaman produk (ketik produk / list).' },
+    __ppob: { label: 'Produk PPOB', icon: 'eye', desc: 'Sembunyikan / tampilkan kategori, layanan, atau produk PPOB di tokomu.', need: 'oke' },
+    __help: { label: 'Panduan', icon: 'book', desc: 'Jawaban singkat untuk pertanyaan yang paling sering muncul.' },
+  };
+  const viewOn = (k) => { const v = VIEWS[k]; const f = S.state && S.state.features; return v && (!v.need || !f || f[v.need] !== false); };
+  const V = (k) => (S.v[k] = S.v[k] || {});
+  const callFn = (fn, args, waitMs) => hostRun('/call', { tenant: S.botId, fn, args: args || {} }, waitMs || 45000);
+  async function loadView(k, fn, args, force) {
+    const v = V(k);
+    if (v.busy || (v.data && !force)) return;
+    v.busy = true; v.err = '';
+    const id = S.botId;
+    const r = await callFn(fn, args);
+    if (id !== S.botId) return;
+    v.busy = false;
+    if (r.ok) v.data = r.result; else v.err = r.error || 'Gagal memuat.';
+    if (S.group === k) refreshMain();
+  }
+  const viewHead = (k, extra) => h('div', { class: 'ghead row between' }, [h('div', null, [h('h2', { text: VIEWS[k].label }), h('p', { text: VIEWS[k].desc })]), extra ? h('div', { class: 'row' }, extra) : null]);
+  const refreshBtn = (onclick, busy) => h('button', { class: 'btn sm', type: 'button', disabled: busy ? true : null, onclick }, [busy ? h('span', { class: 'spin' }) : I('refresh'), busy ? 'Memuat…' : 'Muat ulang']);
+  const loading = (text) => h('div', { class: 'dsec' }, h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: text || 'Mengambil data dari bot…' })]));
+  function viewGuard(k, fn, args) {
+    const v = V(k);
+    if (!v.data && !v.busy && !v.err) setTimeout(() => loadView(k, fn, args), 0);
+    if (v.err && !v.data) return [msg('err', v.err), h('div', null, h('button', { class: 'btn', type: 'button', onclick: () => { v.err = ''; loadView(k, fn, args, true); refreshMain(); } }, 'Coba lagi'))];
+    if (!v.data) return [loading()];
+    return null;
+  }
+  const dateTimeID = (ms) => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+  const roleChip = (r) => h('span', { class: `chip ${r === 'owner' ? 'err' : r === 'platinum' ? 'custom' : r === 'gold' ? 'draft' : 'def'}`, text: r.toUpperCase() });
+  const STC = (st) => (/sukses/i.test(st) ? 'custom' : /gagal|expired|dibatalkan/i.test(st) ? 'err' : /cek manual/i.test(st) ? 'err' : 'draft');
+
+  // ── 1+2. BOT & SEWA ──
+  async function refreshMe() {
+    const d = await api('/me', null, { quiet: true });
+    if (d.ok) { S.me = d; if (S.group === '__bot') refreshMain(); }
+  }
+  function renderBot() {
+    const b = bot();
+    const conn = b.connection || '';
+    const left = b.expiredAt ? Math.ceil((b.expiredAt - Date.now()) / 86400000) : 0;
+    const active = b.expiredAt > Date.now();
+    const p = S.me.pricing;
+    const connChip = conn === 'connected' ? h('span', { class: 'chip custom', text: '● Tersambung' }) : conn === 'pairing' ? h('span', { class: 'chip draft', text: 'Sedang pairing' }) : h('span', { class: 'chip err', text: 'Terputus' });
+    const st = S.pair || {};
+    let pairBox;
+    if (st.code) {
+      pairBox = h('div', { class: 'paircode' }, [
+        h('div', { class: 'dl', text: 'Kode pairing' }), h('div', { class: 'code', text: st.code.replace(/(.{4})(?=.)/, '$1-') }),
+        h('ol', { class: 'steps-list' }, ['Buka WhatsApp di HP nomor bot', 'Ketuk ⋮ / Setelan → Perangkat tertaut → Tautkan perangkat', 'Pilih "Tautkan dengan nomor telepon saja"', 'Masukkan kode di atas'].map((x) => h('li', { text: x }))),
+        h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: 'Menunggu kamu memasukkan kode… (kode berlaku singkat)' })]),
+      ]);
+    } else if (st.busy) pairBox = h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: 'Meminta kode pairing ke server…' })]);
+    else if (!b.realBot) {
+      const inp = h('input', { class: 'input', id: 'pair-n', inputmode: 'numeric', placeholder: 'mis. 081234567890', value: st.num || b.pendingBot ? fmtPhone(st.num || b.pendingBot) : '', 'aria-label': 'Nomor WhatsApp bot' });
+      pairBox = h('div', { class: 'col' }, [
+        st.err ? msg('err', st.err) : null, st.ok ? msg('ok', st.ok) : null,
+        h('div', { class: 'field' }, [h('label', { for: 'pair-n', text: 'Nomor WhatsApp untuk bot' }), inp, h('p', { class: 'hint', text: 'Pakai nomor yang BERBEDA dengan nomor owner. Siapkan HP nomor itu — kode pairing dimasukkan di sana.' })]),
+        h('div', null, h('button', { class: 'btn primary', type: 'button', disabled: !active ? true : null, onclick: () => startPair(inp.value) }, [I('phone'), 'Minta kode pairing'])),
+        !active ? h('p', { class: 'hint', text: 'Masa sewa habis — perpanjang dulu sebelum pairing.' }) : null,
+      ]);
+    } else {
+      pairBox = h('div', { class: 'col' }, [
+        st.ok ? msg('ok', st.ok) : null, st.err ? msg('err', st.err) : null,
+        h('p', { class: 'hint', text: 'Mau ganti nomor bot atau pairing ulang? Putuskan dulu, lalu minta kode pairing baru. Data user, saldo & pengaturan tetap aman.' }),
+        h('div', null, h('button', { class: 'btn danger', type: 'button', onclick: () => openModal({ kind: 'confirm', title: 'Putuskan nomor bot?', text: `Bot ${fmtPhone(b.realBot)} akan keluar dari WhatsApp dan berhenti melayani pembeli sampai dipairing lagi. Data tetap tersimpan.`, ok: 'Ya, putuskan', danger: true, onOk: doDisconnect }) }, [I('x'), 'Putuskan nomor bot'])),
+      ]);
+    }
+    const renewBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => openModal({ kind: 'renew', step: 'form' }) }, [I('rocket'), p ? `Perpanjang ${p.days} hari — ${rpx(p.price)}` : 'Perpanjang sewa']);
+    return [
+      viewHead('__bot', [refreshBtn(() => refreshMe(), false)]),
+      h('div', { class: 'dpair' }, [
+        h('section', { class: 'dsec' }, [
+          h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'WhatsApp bot' }), connChip]),
+          h('div', { class: 'tiles' }, [tile2('Nomor bot', b.realBot ? fmtPhone(b.realBot) : '—'), tile2('Status', conn === 'connected' ? 'Melayani pembeli' : conn === 'pairing' ? 'Menunggu kode' : 'Tidak aktif')]),
+          pairBox,
+        ]),
+        h('section', { class: 'dsec' }, [
+          h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Masa sewa' }), b.trial ? h('span', { class: 'chip draft', text: '🎁 Coba gratis' }) : null]),
+          h('div', { class: 'tiles' }, [tile2('Aktif sampai', b.expiredAt ? dateID(b.expiredAt) : '—', active ? '' : 'warn'), tile2('Sisa', active ? `${left} hari` : 'Habis', active && left > 5 ? 'good' : 'warn')]),
+          h('p', { class: 'hint', text: 'Bayar QRIS, aktif otomatis. Hari baru ditambahkan ke sisa masa sewa kamu.' }),
+          h('div', null, renewBtn),
+        ]),
+      ]),
+    ];
+  }
+  async function startPair(raw) {
+    let n = String(raw || '').replace(/\D/g, ''); if (n.startsWith('0')) n = '62' + n.slice(1); else if (n.startsWith('8')) n = '62' + n;
+    if (!/^62\d{8,13}$/.test(n)) { S.pair = { err: 'Nomor bot belum benar. Contoh: 081234567890', num: raw }; refreshMain(); return; }
+    S.pair = { busy: true, num: n }; refreshMain();
+    const d = await api('/pair', { tenant: S.botId, botNumber: n });
+    if (!d.ok) { S.pair = { err: d.error, num: n }; refreshMain(); return; }
+    const t0 = Date.now();
+    while (Date.now() - t0 < 5 * 60 * 1000) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const st = await api(`/cmd?tenant=${encodeURIComponent(S.botId)}&id=${encodeURIComponent(d.id)}`);
+      if (!st.ok) { S.pair = { err: st.error, num: n }; refreshMain(); return; }
+      if (st.status === 'code' && st.code && st.code !== (S.pair && S.pair.code)) { S.pair = { busy: true, code: st.code, num: n }; refreshMain(); }
+      if (st.status === 'done') { S.pair = { ok: `✅ Bot ${fmtPhone(n)} berhasil tersambung!` }; await refreshMe(); refreshMain(); return; }
+      if (st.status === 'error') { S.pair = { err: `Pairing gagal: ${st.error}`, num: n }; await refreshMe(); refreshMain(); return; }
+    }
+    S.pair = { err: 'Pairing belum selesai (waktu habis). Coba minta kode lagi.', num: n }; refreshMain();
+  }
+  async function doDisconnect() {
+    closeModal(); S.pair = { busy: true }; refreshMain();
+    const r = await hostRun('/disconnect', { tenant: S.botId }, 40000);
+    S.pair = r.ok ? { ok: 'Nomor bot sudah diputus. Kamu bisa pairing nomor baru di bawah.' } : { err: r.error };
+    await refreshMe(); refreshMain();
+  }
+  // modal perpanjang
+  let renewTimer = null;
+  function stopRenew() { clearTimeout(renewTimer); renewTimer = null; }
+  async function renewCreate(email, botPhone) {
+    try { localStorage.setItem('bmp-email', email); } catch (e) { /* abaikan */ }
+    S.modal = { kind: 'renew', step: 'wait', status: 'new', message: 'Membuat tagihan…' }; renderModal();
+    const d = await api('/renew', { tenant: S.botId, email, botPhone });
+    if (!S.modal || S.modal.kind !== 'renew') return;
+    if (!d.ok) { S.modal = { kind: 'renew', step: 'form', error: d.error, email, botPhone }; renderModal(); return; }
+    S.modal.id = d.id; pollRenew();
+  }
+  function pollRenew() {
+    stopRenew();
+    renewTimer = setTimeout(async () => {
+      const m = S.modal; if (!m || m.kind !== 'renew' || !m.id) return;
+      const st = await api(`/renew?tenant=${encodeURIComponent(S.botId)}&id=${encodeURIComponent(m.id)}`);
+      if (S.modal !== m) return;
+      if (st.ok) {
+        const changed = st.status !== m.status || st.qr !== m.qr || st.pairCode !== m.pairCode;
+        Object.assign(m, st);
+        if (['done', 'rejected', 'expired', 'pair_later', 'pair_failed', 'pair_timeout'].includes(st.status)) { m.step = 'end'; renderModal(); refreshMe(); return; }
+        if (changed) renderModal();
+      }
+      pollRenew();
+    }, 3000);
+  }
+  function renewCard(m) {
+    const close = () => { stopRenew(); closeModal(); };
+    const b = bot();
+    const p = S.me.pricing;
+    if (m.step === 'form') {
+      let saved = ''; try { saved = localStorage.getItem('bmp-email') || ''; } catch (e) { /* abaikan */ }
+      const em = h('input', { class: 'input', id: 'rn-e', type: 'email', autocomplete: 'email', placeholder: 'email@kamu.com', value: m.email || saved });
+      const bp = b.realBot ? null : h('input', { class: 'input', id: 'rn-b', inputmode: 'numeric', placeholder: 'nomor WhatsApp bot', value: m.botPhone || '' });
+      return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+        h('header', null, [h('h3', { id: 'mt', text: 'Perpanjang sewa bot' }), h('p', { text: p ? `Paket ${p.days} hari — ${rpx(p.price)}${p.note ? ` (${p.note})` : ''}. Bayar QRIS, aktif otomatis.` : 'Bayar QRIS, aktif otomatis.' })]),
+        h('div', { class: 'modal-body' }, [
+          m.error ? msg('err', m.error) : null,
+          h('div', { class: 'field' }, [h('label', { for: 'rn-e', text: 'Email (untuk bukti bayar)' }), em]),
+          bp ? h('div', { class: 'field' }, [h('label', { for: 'rn-b', text: 'Nomor WhatsApp bot' }), bp, h('p', { class: 'hint', text: 'Bot kamu belum tersambung — setelah bayar, kode pairing tampil di sini.' })]) : null,
+        ]),
+        h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: close }, 'Batal'), h('button', { class: 'btn primary', type: 'button', onclick: () => renewCreate(em.value.trim(), bp ? bp.value : '') }, [I('qr'), 'Buat QRIS'])]),
+      ]);
+    }
+    if (m.step === 'wait') {
+      const body = [];
+      if (m.status === 'awaiting_payment' && m.qr) {
+        body.push(h('div', { class: 'qris-wrap' }, h('img', { class: 'qris', alt: 'QRIS perpanjang sewa', src: m.qr })));
+        body.push(h('div', { class: 'tiles' }, [tile2('Total bayar', rpx(m.total), 'good'), tile2('Paket', `${m.days || (p && p.days) || ''} hari`), tile2('Bayar sebelum', m.expireAt ? new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).format(new Date(m.expireAt)) + ' WIB' : '-')]));
+      } else if (m.status === 'pairing' && m.pairCode) {
+        body.push(h('div', { class: 'paircode' }, [h('div', { class: 'dl', text: 'Kode pairing' }), h('div', { class: 'code', text: m.pairCode.replace(/(.{4})(?=.)/, '$1-') }), h('p', { class: 'hint', text: 'WhatsApp nomor bot → Perangkat tertaut → Tautkan dengan nomor telepon saja → masukkan kode.' })]));
+      }
+      body.push(h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: m.message || 'Memproses…' })]));
+      return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+        h('header', null, [h('h3', { id: 'mt', text: m.status === 'awaiting_payment' ? 'Scan QRIS untuk membayar' : m.status === 'paid' ? 'Pembayaran diterima' : 'Menyiapkan tagihan…' })]),
+        h('div', { class: 'modal-body' }, body),
+        h('footer', null, [h('button', { class: 'btn', type: 'button', onclick: close }, 'Tutup')]),
+      ]);
+    }
+    const okk = ['done', 'pair_later', 'pair_failed', 'pair_timeout'].includes(m.status);   // pembayaran sudah masuk
+    const pairBad = m.status === 'pair_failed' || m.status === 'pair_timeout';
+    return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+      h('header', null, [h('h3', { id: 'mt', text: okk ? 'Sewa berhasil diperpanjang' : m.status === 'expired' ? 'QRIS kedaluwarsa' : 'Belum berhasil' })]),
+      h('div', { class: 'modal-body' }, okk
+        ? [h('div', { class: 'big-ok' }, [h('span', { class: 'c' }, I('check')), h('b', { text: m.expiredAt ? `Aktif sampai ${dateID(m.expiredAt)}` : 'Masa sewa bertambah' }), pairBad ? null : h('p', { class: 'hint', text: m.message || '' })]),
+           pairBad ? msg('warn', 'Pembayaran berhasil, tapi pairing bot belum selesai. Tutup jendela ini lalu minta kode pairing lagi di halaman Bot & Sewa.') : null]
+        : [msg(m.status === 'expired' ? 'info' : 'err', m.message || 'Coba lagi beberapa saat lagi.')]),
+      h('footer', null, [h('button', { class: 'btn primary', type: 'button', onclick: close }, 'Selesai')]),
+    ]);
+  }
+
+  // ── 3. PROFIT ──
+  function renderProfit() {
+    const g = viewGuard('__profit', 'profit.get'); const head = viewHead('__profit', [refreshBtn(() => loadView('__profit', 'profit.get', {}, true), V('__profit').busy)]);
+    if (g) return [head, ...g];
+    const d = V('__profit').data;
+    const kinds = [['game', 'Topup game', d.game], ['digi', 'Layanan Lainnya', d.digi], ['oke', 'PPOB', d.oke]].filter((x) => x[2]);
+    const v = V('__profit');
+    v.kind = kinds.some((k) => k[0] === v.kind) ? v.kind : kinds[0][0];
+    const cur = kinds.find((k) => k[0] === v.kind)[2];
+    v.edit = v.edit && v.edit.kind === v.kind ? v.edit : { kind: v.kind, percent: { ...cur.percent } };
+    v.modal = v.modal || 27000;
+    const tabs = kinds.length > 1 ? h('div', { class: 'pv-tabs', role: 'tablist' }, kinds.map(([k, l]) => h('button', { type: 'button', role: 'tab', class: v.kind === k ? 'on' : '', onclick: () => { v.kind = k; v.edit = null; refreshMain(); } }, l))) : null;
+    const sim = h('tbody');
+    const drawSim = () => {
+      sim.textContent = '';
+      for (const r of d.roles) {
+        const pc = Number(v.edit.percent[r]) || 0;
+        const untung = Math.round((v.modal * pc) / 100);
+        sim.appendChild(h('tr', null, [h('td', null, roleChip(r)), h('td', { text: `${pc}%` }), h('td', { text: rpx(v.modal + untung) }), h('td', { class: 'good', text: `+${rpx(untung)}` })]));
+      }
+    };
+    const changed = d.roles.some((r) => Number(v.edit.percent[r]) !== Number(cur.percent[r]));
+    const rows = d.roles.map((r) => {
+      const inp = h('input', { class: 'input num', type: 'number', min: '0', max: String(cur.max), step: '0.1', inputmode: 'decimal', value: String(v.edit.percent[r]), 'aria-label': `Profit ${r}` });
+      inp.addEventListener('input', () => { v.edit.percent[r] = inp.value === '' ? '' : Number(inp.value); drawSim(); const sv = $('#pf-save'); if (sv) sv.disabled = false; });
+      return h('div', { class: 'setrow' }, [
+        h('div', { class: 'tx' }, [h('b', null, roleChip(r)), h('small', { text: `Bawaan ${cur.def[r]}%` })]),
+        h('div', { class: 'row' }, [inp, h('span', { class: 'hint', text: '%' })]),
+      ]);
+    });
+    const modalInp = h('input', { class: 'input num wide', type: 'number', min: '0', step: '500', value: String(v.modal), 'aria-label': 'Harga modal contoh' });
+    modalInp.addEventListener('input', () => { v.modal = Math.max(0, Math.round(Number(modalInp.value) || 0)); drawSim(); });
+    drawSim();
+    return [
+      head,
+      h('section', { class: 'dsec' }, [
+        h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Persen profit per role' }), tabs]),
+        ...rows,
+        v.err ? msg('err', v.err) : null,
+        h('div', { class: 'row' }, [
+          h('button', { class: 'btn primary', id: 'pf-save', type: 'button', disabled: changed ? null : true, onclick: async () => {
+            for (const r of d.roles) { const n = Number(v.edit.percent[r]); if (!Number.isFinite(n) || n < 0 || n > cur.max) { toast(`Profit ${r} harus 0–${cur.max}%`, 'err'); return; } }
+            const r = await callFn('profit.set', { kind: v.kind, percent: Object.fromEntries(d.roles.map((x) => [x, Math.round(Number(v.edit.percent[x]) * 100) / 100])) });
+            if (r.ok) { v.data = r.result; v.edit = null; toast('Profit tersimpan & langsung dipakai bot.'); } else toast(r.error, 'err');
+            refreshMain();
+          } }, [I('check'), 'Simpan profit']),
+          h('button', { class: 'btn ghost', type: 'button', onclick: () => { v.edit = { kind: v.kind, percent: { ...cur.def } }; refreshMain(); } }, [I('undo'), 'Isi nilai bawaan']),
+        ]),
+      ]),
+      h('section', { class: 'dsec' }, [
+        h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Simulasi harga jual' }), h('div', { class: 'row' }, [h('span', { class: 'hint', text: 'Harga modal' }), modalInp])]),
+        h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [h('thead', null, h('tr', null, ['Role', 'Profit', 'Harga jual', 'Untung'].map((x) => h('th', { text: x })))), sim])),
+        h('p', { class: 'hint', text: 'Pembeli hanya melihat harga sesuai role-nya. Owner biasanya 0% (harga modal).' }),
+      ]),
+    ];
+  }
+
+  // ── 4. USER ──
+  function renderUsers() {
+    const g = viewGuard('__users', 'users.list'); const v = V('__users');
+    const head = viewHead('__users', [refreshBtn(() => loadView('__users', 'users.list', {}, true), v.busy)]);
+    if (g) return [head, ...g];
+    const d = v.data;
+    let q = (v.q || '').replace(/\D/g, ''); if (q.startsWith('0')) q = '62' + q.slice(1);
+    const list = d.rows.filter((u) => (!q || u.nomor.includes(q)) && (!v.role || u.role === v.role));
+    const PER = 50; const pages = Math.max(1, Math.ceil(list.length / PER)); v.page = Math.min(v.page || 0, pages - 1);
+    const search = h('input', { class: 'input', type: 'search', placeholder: 'Cari nomor…', value: v.q || '', 'aria-label': 'Cari nomor user' });
+    search.addEventListener('input', () => { v.q = search.value; v.page = 0; const keep = search.selectionStart; refreshMain(); const s2 = $('#u-q'); if (s2) { s2.focus(); s2.setSelectionRange(keep, keep); } });
+    search.id = 'u-q';
+    const roleSel = h('select', { class: 'input', 'aria-label': 'Filter role' }, [h('option', { value: '', text: 'Semua role' }), ...d.roles.map((r) => h('option', { value: r, text: r.toUpperCase() }))]);
+    roleSel.value = v.role || ''; roleSel.addEventListener('change', () => { v.role = roleSel.value; v.page = 0; refreshMain(); });
+    const total = d.rows.reduce((t, u) => t + u.saldo, 0);
+    return [
+      head,
+      h('div', { class: 'tiles' }, [tile2('User terdaftar', String(d.total)), tile2('Total saldo user', rpx(total)), tile2('Ditampilkan', String(list.length))]),
+      h('section', { class: 'dsec' }, [
+        h('div', { class: 'row filters' }, [search, roleSel]),
+        list.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl click' }, [
+          h('thead', null, h('tr', null, ['Nomor', 'Role', 'Saldo', 'Terdaftar', ''].map((x) => h('th', { text: x })))),
+          h('tbody', null, list.slice(v.page * PER, (v.page + 1) * PER).map((u) => h('tr', { tabindex: '0', onclick: () => openModal({ kind: 'user', u }), onkeydown: (e) => { if (e.key === 'Enter') openModal({ kind: 'user', u }); } }, [
+            h('td', { text: fmtPhone(u.nomor) }), h('td', null, roleChip(u.role)), h('td', { text: rpx(u.saldo) }), h('td', { text: u.createdAt ? dateID(u.createdAt) : '-' }), h('td', null, h('span', { class: 'linkbtn', text: 'Kelola' })),
+          ]))),
+        ])) : h('p', { class: 'hint', text: 'Tidak ada user yang cocok.' }),
+        pages > 1 ? pager(v, pages) : null,
+      ]),
+    ];
+  }
+  function pager(v, pages) {
+    return h('div', { class: 'row pager' }, [
+      h('button', { class: 'btn sm', type: 'button', disabled: v.page <= 0 ? true : null, onclick: () => { v.page -= 1; refreshMain(); } }, '‹ Sebelumnya'),
+      h('span', { class: 'hint', text: `Halaman ${v.page + 1} / ${pages}` }),
+      h('button', { class: 'btn sm', type: 'button', disabled: v.page >= pages - 1 ? true : null, onclick: () => { v.page += 1; refreshMain(); } }, 'Berikutnya ›'),
+    ]);
+  }
+  function userCard(m) {
+    const u = m.u; const d = V('__users').data;
+    const sel = h('select', { class: 'input', id: 'um-r', 'aria-label': 'Role' }, d.roles.map((r) => h('option', { value: r, text: r.toUpperCase() }))); sel.value = u.role;
+    const amt = h('input', { class: 'input', id: 'um-a', inputmode: 'numeric', placeholder: 'mis. 10000', value: m.amt || '' });
+    amt.addEventListener('input', () => { m.amt = amt.value; amt.classList.remove('bad'); });
+    const busy = m.busy;
+    const doRole = async () => {
+      if (sel.value === u.role) return;
+      if (sel.value === 'owner' && !window.confirm('Role OWNER bisa memakai perintah owner bot (atur saldo, profit, dll). Yakin?')) return;
+      m.busy = true; renderModal();
+      const r = await callFn('users.setRole', { nomor: u.nomor, role: sel.value });
+      m.busy = false;
+      if (r.ok) { u.role = r.result.role; m.ok = `Role sekarang ${String(u.role).toUpperCase()}`; m.error = ''; refreshMain(); } else { m.error = r.error; m.ok = ''; }
+      renderModal();
+    };
+    const doAdj = async (sign) => {
+      const n = Math.round(Number(String(amt.value).replace(/\D/g, '')) || 0);
+      if (!n) { amt.focus(); amt.classList.add('bad'); return; }
+      if (n > 10000000) { m.error = 'Maksimal Rp 10.000.000 sekali ubah.'; m.ok = ''; renderModal(); return; }
+      if (sign < 0 && n > u.saldo) { m.error = `Saldo user hanya ${rpx(u.saldo)} — tidak bisa dikurangi ${rpx(n)}.`; m.ok = ''; renderModal(); return; }
+      if (!window.confirm(`${sign > 0 ? 'Tambah' : 'Kurangi'} saldo ${fmtPhone(u.nomor)} sebesar ${rpx(n)}?`)) return;
+      m.busy = true; renderModal();
+      const r = await callFn('users.adjust', { nomor: u.nomor, delta: sign * n });
+      m.busy = false;
+      if (r.ok) { u.saldo = r.result.sesudah; m.amt = ''; m.ok = `Saldo ${rpx(r.result.sebelum)} → ${rpx(r.result.sesudah)}`; m.error = ''; refreshMain(); } else { m.error = r.error; m.ok = ''; }
+      renderModal();
+    };
+    return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+      h('header', null, [h('h3', { id: 'mt', text: fmtPhone(u.nomor) }), h('p', null, [roleChip(u.role), `  Saldo ${rpx(u.saldo)}`])]),
+      h('div', { class: 'modal-body' }, [
+        m.error ? msg('err', m.error) : null, m.ok ? msg('ok', m.ok) : null,
+        h('div', { class: 'field' }, [h('label', { for: 'um-r', text: 'Role' }), h('div', { class: 'row' }, [sel, h('button', { class: 'btn sm', type: 'button', disabled: busy ? true : null, onclick: doRole }, 'Simpan role')])]),
+        h('div', { class: 'field' }, [h('label', { for: 'um-a', text: 'Tambah / kurangi saldo' }), amt, h('div', { class: 'row' }, [
+          h('button', { class: 'btn sm', type: 'button', disabled: busy ? true : null, onclick: () => doAdj(1) }, [I('plus'), 'Tambah']),
+          h('button', { class: 'btn sm danger', type: 'button', disabled: busy ? true : null, onclick: () => doAdj(-1) }, '− Kurangi'),
+          busy ? h('span', { class: 'spin' }) : null,
+        ]), h('p', { class: 'hint', text: 'Tercatat di tab Mutasi Saldo Google Sheet. Owner dikabari lewat WhatsApp.' })]),
+      ]),
+      h('footer', null, [h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Selesai')]),
+    ]);
+  }
+
+  // ── 5. RIWAYAT ──
+  function renderHist() {
+    const v = V('__hist'); v.kind = v.kind || 'trx';
+    const key = `__hist_${v.kind}`;
+    const hv = V(key);
+    if (!hv.data && !hv.busy && !hv.err) setTimeout(() => loadHist(v.kind), 0);
+    const tabs = h('div', { class: 'pv-tabs', role: 'tablist' }, [['trx', 'Transaksi'], ['depo', 'Deposit']].map(([k, l]) => h('button', { type: 'button', role: 'tab', class: v.kind === k ? 'on' : '', onclick: () => { if (v.kind !== k) { v.kind = k; v.page = 0; v.q = ''; v.st = ''; } refreshMain(); } }, l)));
+    const head = viewHead('__hist', [tabs, refreshBtn(() => loadHist(v.kind, true), hv.busy)]);
+    if (hv.err && !hv.data) return [head, msg('err', hv.err)];
+    if (!hv.data) return [head, loading('Mengambil riwayat 7 hari…')];
+    const rows = hv.data.rows;
+    const q = (v.q || '').trim().toLowerCase();
+    const list = rows.filter((r) => (!q || Object.values(r).join(' ').toLowerCase().includes(q)) && (!v.st || STC(r.status) === v.st));
+    const PER = 50; const pages = Math.max(1, Math.ceil(list.length / PER)); v.page = Math.min(v.page || 0, pages - 1);
+    const search = h('input', { class: 'input', id: 'h-q', type: 'search', placeholder: v.kind === 'trx' ? 'Cari nomor, invoice, tujuan, produk…' : 'Cari nomor atau ref…', value: v.q || '' });
+    search.addEventListener('input', () => { v.q = search.value; v.page = 0; const keep = search.selectionStart; refreshMain(); const s2 = $('#h-q'); if (s2) { s2.focus(); s2.setSelectionRange(keep, keep); } });
+    const stSel = h('select', { class: 'input', 'aria-label': 'Filter status' }, [['', 'Semua status'], ['custom', 'Sukses'], ['draft', 'Diproses / menunggu'], ['err', 'Gagal / batal / cek manual']].map(([vv, l]) => h('option', { value: vv, text: l })));
+    stSel.value = v.st || ''; stSel.addEventListener('change', () => { v.st = stSel.value; v.page = 0; refreshMain(); });
+    const sukses = rows.filter((r) => /sukses/i.test(r.status));
+    const sum = v.kind === 'trx'
+      ? [tile2('Transaksi (7 hari)', String(rows.length)), tile2('Sukses', String(sukses.length), 'good'), tile2('Omset sukses', rpx(sukses.reduce((t, r) => t + r.harga, 0)))]
+      : [tile2('Deposit (7 hari)', String(rows.length)), tile2('Sukses', String(sukses.length), 'good'), tile2('Total masuk', rpx(sukses.reduce((t, r) => t + r.masuk, 0)))];
+    const headCols = v.kind === 'trx' ? ['Waktu', 'Nomor', 'Produk', 'Tujuan', 'Harga', 'Status'] : ['Waktu', 'Nomor', 'Jenis', 'Nominal', 'Status'];
+    const rowEl = (r) => h('tr', { tabindex: '0', onclick: () => openModal({ kind: 'hist', r, k: v.kind }), onkeydown: (e) => { if (e.key === 'Enter') openModal({ kind: 'hist', r, k: v.kind }); } }, v.kind === 'trx'
+      ? [h('td', { text: dateTimeID(r.ts) }), h('td', { text: fmtPhone(r.nomor) }), h('td', { class: 'wrap', text: r.item || r.kode }), h('td', { text: r.tujuan }), h('td', { text: rpx(r.harga) }), h('td', null, h('span', { class: `chip ${STC(r.status)}`, text: r.status || '-' }))]
+      : [h('td', { text: dateTimeID(r.ts) }), h('td', { text: fmtPhone(r.nomor) }), h('td', { class: 'wrap', text: r.tipe || r.metode }), h('td', { text: rpx(r.nominal) }), h('td', null, h('span', { class: `chip ${STC(r.status)}`, text: r.status || '-' }))]);
+    return [
+      head, h('div', { class: 'tiles' }, sum),
+      h('section', { class: 'dsec' }, [
+        h('div', { class: 'row filters' }, [search, stSel]),
+        list.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl click' }, [h('thead', null, h('tr', null, headCols.map((x) => h('th', { text: x })))), h('tbody', null, list.slice(v.page * PER, (v.page + 1) * PER).map(rowEl))])) : h('p', { class: 'hint', text: 'Tidak ada data yang cocok.' }),
+        pages > 1 ? pager(v, pages) : null,
+        h('p', { class: 'hint', text: 'Riwayat lebih lama dari 7 hari ada di Google Sheet rekap (tab Data Transaksi / Data Pembayaran).' }),
+      ]),
+    ];
+  }
+  async function loadHist(kind, force) {
+    const k = `__hist_${kind}`; const v = V(k);
+    if (v.busy || (v.data && !force)) return;
+    v.busy = true; v.err = ''; if (S.group === '__hist') refreshMain();
+    const r = await callFn('history.recent', { kind });
+    v.busy = false;
+    if (r.ok) v.data = r.result; else v.err = r.error;
+    if (S.group === '__hist') refreshMain();
+  }
+  function histCard(m) {
+    const r = m.r;
+    const F = m.k === 'trx'
+      ? [['Waktu', dateTimeID(r.ts)], ['Status', r.status], ['Invoice', r.invoice], ['Ref', r.ref], ['Nomor pembeli', fmtPhone(r.nomor)], ['Produk', `${r.item} (${r.kode})`], ['Tujuan', r.tujuan], ['Nickname', r.nickname], ['Harga', rpx(r.harga)], ['Profit', rpx(r.profit)], ['Metode', r.metode], ['Provider', r.provider], ['SN', r.sn], ['Keterangan', r.message]]
+      : [['Waktu', dateTimeID(r.ts)], ['Status', r.status], ['Ref', r.ref], ['Nomor', fmtPhone(r.nomor)], ['Jenis', r.tipe], ['Metode', r.metode], ['Nominal', rpx(r.nominal)], ['Saldo masuk', rpx(r.masuk)]];
+    return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+      h('header', null, [h('h3', { id: 'mt', text: m.k === 'trx' ? 'Detail transaksi' : 'Detail deposit' })]),
+      h('div', { class: 'modal-body' }, h('dl', { class: 'kv' }, F.filter(([, x]) => x !== undefined && x !== null && String(x).trim() && !/^\s*\(\)\s*$/.test(String(x))).flatMap(([k, x]) => [h('dt', { text: k }), h('dd', { text: String(x) })]))),
+      h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: () => { try { navigator.clipboard.writeText(F.map(([k, x]) => `${k}: ${x}`).join('\n')); toast('Disalin.'); } catch (e) { /* abaikan */ } } }, [I('copy'), 'Salin']), h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Tutup')]),
+    ]);
+  }
+
+  // ── 6. BANNER ──
+  function renderBanner() {
+    const g = viewGuard('__banner', 'banner.get'); const v = V('__banner');
+    const head = viewHead('__banner');
+    if (g) return [head, ...g];
+    const d = v.data;
+    const file = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', class: 'sr', id: 'bn-file' });
+    file.addEventListener('change', () => { const f = file.files && file.files[0]; if (f) prepBanner(f); });
+    const src = v.draft || (d.has ? `data:image/jpeg;base64,${String(d.data).replace(/[^A-Za-z0-9+/=]/g, '')}` : '');
+    return [
+      head,
+      h('div', { class: 'dpair' }, [
+        h('section', { class: 'dsec' }, [
+          h('h3', { class: 'dh', text: v.draft ? 'Banner baru (belum disimpan)' : 'Banner sekarang' }),
+          src ? h('img', { class: 'banner-img', src, alt: 'Banner toko' }) : h('div', { class: 'empty' }, [I('image'), h('h3', { text: 'Belum ada banner' }), h('p', { text: 'Halaman produk tampil tanpa gambar.' })]),
+          v.err ? msg('err', v.err) : null,
+          h('div', { class: 'row' }, v.draft
+            ? [h('button', { class: 'btn primary', type: 'button', disabled: v.saving ? true : null, onclick: saveBanner }, [v.saving ? h('span', { class: 'spin' }) : I('check'), v.saving ? 'Menyimpan…' : 'Simpan banner']), h('button', { class: 'btn ghost', type: 'button', onclick: () => { v.draft = ''; refreshMain(); } }, 'Batal')]
+            : [h('label', { class: 'btn primary', for: 'bn-file' }, [I('image'), d.has ? 'Ganti gambar' : 'Pilih gambar']), file,
+               d.has ? h('button', { class: 'btn ghost danger', type: 'button', onclick: () => openModal({ kind: 'confirm', title: 'Hapus banner?', text: 'Halaman produk akan tampil tanpa gambar.', ok: 'Hapus', danger: true, onOk: async () => { closeModal(); const r = await callFn('banner.remove'); if (r.ok) { v.data = { has: false, data: '' }; toast('Banner dihapus.'); } else toast(r.error, 'err'); refreshMain(); } }) }, [I('trash'), 'Hapus']) : null]),
+        ]),
+        h('section', { class: 'dsec' }, [
+          h('h3', { class: 'dh', text: 'Tips' }),
+          h('ul', { class: 'tips' }, ['Ukuran ideal 1280×720 (landscape). Gambar dikecilkan otomatis ke lebar 1024 px.', 'Format JPG / PNG / WEBP. Teks di gambar sebaiknya besar supaya terbaca di HP.', 'Caption di bawah banner diatur di Wording → Menu & Halaman Produk → Halaman produk.'].map((x) => h('li', { text: x }))),
+        ]),
+      ]),
+    ];
+  }
+  function prepBanner(f) {
+    const v = V('__banner'); v.err = '';
+    if (f.size > 15 * 1024 * 1024) { v.err = 'Gambar terlalu besar (maks 15 MB).'; refreshMain(); return; }
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const w = Math.min(1024, img.naturalWidth), hh = Math.round(img.naturalHeight * (w / img.naturalWidth));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
+        const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, hh); cx.drawImage(img, 0, 0, w, hh);
+        let q = 0.85, out = cv.toDataURL('image/jpeg', q);
+        while (out.length > 900000 && q > 0.4) { q -= 0.1; out = cv.toDataURL('image/jpeg', q); }
+        if (out.length > 900000) { v.err = 'Gambar terlalu rumit. Coba gambar lain.'; refreshMain(); return; }
+        v.draft = out; refreshMain();
+      };
+      img.onerror = () => { v.err = 'File bukan gambar yang bisa dibaca.'; refreshMain(); };
+      img.src = rd.result;
+    };
+    rd.readAsDataURL(f);
+  }
+  async function saveBanner() {
+    const v = V('__banner'); v.saving = true; refreshMain();
+    const r = await callFn('banner.set', { data: v.draft.split(',')[1] }, 60000);
+    v.saving = false;
+    if (r.ok) { v.data = { has: true, data: v.draft.split(',')[1] }; v.draft = ''; toast('Banner tersimpan & langsung dipakai bot.'); } else v.err = r.error;
+    refreshMain();
+  }
+
+  // ── 8. PPOB ──
+  function renderPpob() {
+    const g = viewGuard('__ppob', 'ppob.tree'); const v = V('__ppob');
+    const head = viewHead('__ppob', [refreshBtn(() => loadView('__ppob', 'ppob.tree', {}, true), v.busy)]);
+    if (g) return [head, ...g];
+    const d = v.data;
+    v.open = v.open || {};
+    const sw = (on, label, onchange) => {
+      const b = h('button', { type: 'button', role: 'switch', class: `switch${on ? ' on' : ''}`, 'aria-checked': String(on), 'aria-label': label, onclick: (e) => { e.stopPropagation(); onchange(!on); } }, h('span'));
+      return b;
+    };
+    const setH = async (kind, key, hidden, apply) => {
+      apply(hidden); refreshMain();
+      const r = await callFn('ppob.set', { kind, key, hidden });
+      if (!r.ok) { apply(!hidden); toast(r.error, 'err'); } else d.hiddenCount = r.result.hiddenCount;
+      refreshMain();
+    };
+    const up = (x) => String(x).trim().toUpperCase();
+    const q = (v.q || '').trim().toLowerCase();
+    const search = h('input', { class: 'input', id: 'pp-q', type: 'search', placeholder: 'Cari kategori, layanan, atau kode produk…', value: v.q || '' });
+    search.addEventListener('input', () => { v.q = search.value; const keep = search.selectionStart; refreshMain(); const s2 = $('#pp-q'); if (s2) { s2.focus(); s2.setSelectionRange(keep, keep); } });
+    const cats = d.cats.filter((c) => !q || c.name.toLowerCase().includes(q) || c.brands.some((b) => b.name.toLowerCase().includes(q) || b.items.some((it) => (it.kode + ' ' + it.nama).toLowerCase().includes(q))));
+    const catEl = (c) => {
+      const parentHidden = c.kuota && d.kuotaHidden;
+      const open = v.open[c.name] || (q && q.length >= 2);
+      return h('div', { class: `pcat${c.hidden || parentHidden ? ' off' : ''}` }, [
+        h('div', { class: 'prow', onclick: () => { v.open[c.name] = !v.open[c.name]; refreshMain(); } }, [
+          h('span', { class: `chev2${open ? ' open' : ''}`, icon: 'chev' }), h('b', { text: c.name }), h('small', { class: 'hint', text: `${c.brands.length} layanan` }),
+          parentHidden ? h('span', { class: 'chip def', text: 'ikut KUOTA' }) : null,
+          sw(!c.hidden, `Tampilkan ${c.name}`, (on) => setH('cats', c.name, !on, (hid) => { c.hidden = hid; })),
+        ]),
+        open ? h('div', { class: 'pbrands' }, c.brands.filter((b) => !q || c.name.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || b.items.some((it) => (it.kode + ' ' + it.nama).toLowerCase().includes(q))).map((b) => {
+          const bk = `${c.name}|${b.name}`; const bo = v.open[bk] || (q && q.length >= 3);
+          return h('div', { class: `pbrand${b.hidden ? ' off' : ''}` }, [
+            h('div', { class: 'prow', onclick: () => { v.open[bk] = !v.open[bk]; refreshMain(); } }, [
+              h('span', { class: `chev2${bo ? ' open' : ''}`, icon: 'chev' }), h('span', { text: b.name }), h('small', { class: 'hint', text: `${b.items.length} produk` }),
+              c.brands.length > 1 ? sw(!b.hidden, `Tampilkan ${b.name}`, (on) => setH('brands', `${up(c.name)}|${up(b.name)}`, !on, (hid) => { b.hidden = hid; })) : null,
+            ]),
+            bo ? h('div', { class: 'pitems' }, b.items.filter((it) => !q || q.length < 3 || (it.kode + ' ' + it.nama + ' ' + b.name + ' ' + c.name).toLowerCase().includes(q)).map((it) => h('div', { class: `pitem${it.hidden ? ' off' : ''}` }, [
+              h('span', { class: 'tx' }, [h('span', { text: it.nama }), h('code', { text: it.kode })]),
+              sw(!it.hidden, `Tampilkan ${it.kode}`, (on) => setH('prods', it.kode, !on, (hid) => { it.hidden = hid; })),
+            ]))) : null,
+          ]);
+        })) : null,
+      ]);
+    };
+    const kuota = cats.filter((c) => c.kuota), others = cats.filter((c) => !c.kuota);
+    return [
+      head,
+      h('div', { class: 'tiles' }, [tile2('Disembunyikan', String(d.hiddenCount || 0), d.hiddenCount ? 'warn' : ''), tile2('Kategori', String(d.cats.length))]),
+      h('section', { class: 'dsec' }, [
+        h('div', { class: 'row filters' }, [search, d.hiddenCount ? h('button', { class: 'btn sm', type: 'button', onclick: () => openModal({ kind: 'confirm', title: 'Tampilkan semua produk PPOB?', text: 'Semua kategori, layanan & produk yang disembunyikan akan tampil lagi.', ok: 'Tampilkan semua', onOk: async () => { closeModal(); const r = await callFn('ppob.reset'); if (r.ok) { v.data = null; loadView('__ppob', 'ppob.tree', {}, true); toast('Semua produk PPOB tampil lagi.'); } else toast(r.error, 'err'); } }) }, [I('eye'), 'Tampilkan semua']) : null]),
+        h('p', { class: 'hint', text: 'Hijau = tampil di tokomu. Produk mengikuti etalase pusat Baramarket — kamu hanya bisa menyembunyikan, tidak menambah.' }),
+        ...others.map(catEl),
+        kuota.length ? h('div', { class: `pcat group${d.kuotaHidden ? ' off' : ''}` }, [
+          h('div', { class: 'prow' }, [h('b', { text: 'KUOTA (semua operator)' }), h('small', { class: 'hint', text: `${kuota.length} operator` }), sw(!d.kuotaHidden, 'Tampilkan semua kuota', (on) => setH('cats', 'KUOTA', !on, (hid) => { d.kuotaHidden = hid; }))]),
+          h('div', { class: 'pbrands' }, kuota.map(catEl)),
+        ]) : null,
+      ]),
+    ];
+  }
+
+  // ── 11. PANDUAN ──
+  const FAQ = [
+    ['Cara menyambungkan (pairing) bot', 'Buka menu Bot & Sewa → isi nomor WhatsApp untuk bot (bukan nomor owner) → Minta kode pairing. Di HP nomor bot: WhatsApp → Perangkat tertaut → Tautkan perangkat → "Tautkan dengan nomor telepon saja" → masukkan kode 8 huruf. Kode berlaku singkat; kalau gagal, minta kode lagi.'],
+    ['Mengubah tampilan pesan bot (wording)', 'Pilih kelompok di bagian Wording & profil, klik pesan yang mau diubah, edit teksnya, dan lihat pratinjaunya langsung. Perubahan tersimpan sebagai draf — bot baru berubah setelah kamu menekan Luncurkan.'],
+    ['Kode @… di wording itu apa?', 'Kode pengganti yang diisi otomatis oleh bot, mis. @toko = nama toko, @produk = nama produk. Klik kode di bawah editor untuk menyisipkannya. Baris yang berisi kode opsional (mis. @sn) hilang sendiri kalau datanya kosong.'],
+    ['Kapan uang QRIS dicairkan?', 'Pembayaran QRIS pembeli masuk ke akun pusat lalu dicairkan ke rekening kamu per hari. Statusnya terlihat di Dashboard → Pencairan QRIS (Belum dicairkan / Diproses / Sudah dicairkan) dan di Google Sheet rekap.'],
+    ['Deposit saldo web Baramarket', 'Saldo web dipakai bot untuk membeli produk ke Baramarket. Isi lewat Dashboard → Deposit Saldo Web: masukkan nominal, scan QRIS, saldo masuk otomatis sebesar total yang dibayar.'],
+    ['Mengatur profit / harga jual', 'Menu Profit per Role: isi persen untung untuk Basic, Gold, Platinum, dan Owner. Harga jual = modal + persen. Pakai simulasi untuk melihat harga jual sebelum menyimpan.'],
+    ['Pembeli bilang "Fitur ini khusus di grup"', 'Mode order sedang "Hanya di grup". Ubah di Dashboard → Pengaturan bot → Mode order bila pembeli boleh order di chat pribadi juga.'],
+    ['Saldo provider "Waspada"', 'Artinya total saldo provider (Baramarket + lainnya) lebih kecil dari total saldo milik semua user. Segera deposit saldo web supaya order pembeli tidak gagal.'],
+    ['Keamanan akun', 'Login hanya dengan kode OTP yang dikirim bot Baramarket ke WhatsApp owner. Jangan berikan kode itu ke siapa pun — admin tidak pernah memintanya. Nyalakan verifikasi dua langkah WhatsApp. Curiga ada yang masuk? Menu ⋮ → Keluar dari semua perangkat.'],
+    ['Butuh bantuan lain?', 'Gabung grup diskusi penyewa untuk tanya jawab dan info update fitur.'],
+  ];
+  function renderHelp() {
+    return [
+      viewHead('__help'),
+      h('section', { class: 'dsec' }, FAQ.map(([qq, a], i) => h('details', { class: 'box', open: i === 0 ? true : null }, [h('summary', null, [I('info'), qq, chevI()]), h('div', { class: 'box-in' }, h('p', { style: 'margin:0', text: a }))]))),
+      h('a', { class: 'slink grp', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'gi', icon: 'chat' }), h('span', { class: 'tx' }, [h('b', { text: 'Gabung Grup Diskusi Sewa Bot Topup' }), h('small', { text: 'Tanya jawab & info update fitur' })]), I('ext')]),
+    ];
+  }
+
+  // ── 7. GRAFIK 30 HARI (dashboard) ──
+  function chartEl(rows, metric) {
+    const W = 720, H = 180, P = { l: 8, r: 8, t: 12, b: 24 };
+    const vals = rows.map((r) => r[metric] || 0);
+    const max = Math.max(1, ...vals);
+    const bw = (W - P.l - P.r) / rows.length;
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'chart'); svg.setAttribute('role', 'img');
+    const total = vals.reduce((a, b) => a + b, 0);
+    svg.setAttribute('aria-label', `Grafik ${metric} 30 hari, total ${metric === 'n' ? total : rpx(total)}`);
+    const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+    svg.appendChild(mk('line', { x1: P.l, x2: W - P.r, y1: H - P.b, y2: H - P.b, class: 'axis' }));
+    rows.forEach((r, i) => {
+      const v2 = vals[i]; const hh = Math.round(((H - P.t - P.b) * v2) / max);
+      const x = P.l + i * bw + bw * 0.15, y = H - P.b - hh;
+      const rect = mk('rect', { x: x.toFixed(1), y, width: (bw * 0.7).toFixed(1), height: Math.max(v2 ? 2 : 0, hh), rx: 2, class: i === rows.length - 1 ? 'bar now' : 'bar' });
+      const t = document.createElementNS(NS, 'title'); t.textContent = `${dayID(r.day)}: ${metric === 'n' ? `${v2} transaksi` : rpx(v2)}`; rect.appendChild(t);
+      svg.appendChild(rect);
+      if (i % 5 === 0 || i === rows.length - 1) { const lb = mk('text', { x: (x + bw * 0.35).toFixed(1), y: H - 6, class: 'axl', 'text-anchor': 'middle' }); lb.textContent = String(Number(r.day.slice(8))); svg.appendChild(lb); }
+    });
+    return svg;
+  }
+  function chartSection(d) {
+    if (!d.chart) return null;
+    const m = S.chartM || 'omset';
+    const seg = h('div', { class: 'pv-tabs', role: 'tablist' }, [['omset', 'Omset'], ['profit', 'Profit'], ['n', 'Transaksi']].map(([k, l]) => h('button', { type: 'button', role: 'tab', class: m === k ? 'on' : '', onclick: () => { S.chartM = k; refreshMain(); } }, l)));
+    const tot = d.chart.reduce((a, r) => a + (r[m] || 0), 0);
+    const best = d.chart.reduce((a, r) => ((r[m] || 0) > (a[m] || 0) ? r : a), d.chart[0]);
+    return h('section', { class: 'dsec' }, [
+      h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Grafik 30 hari' }), seg]),
+      h('div', { class: 'tiles' }, [tile2(`Total ${m === 'n' ? 'transaksi' : m}`, m === 'n' ? String(tot) : rpx(tot)), tile2('Rata-rata / hari', m === 'n' ? (tot / 30).toFixed(1) : rpx(tot / 30)), tile2('Hari terbaik', best && best[m] ? `${dayID(best.day)} · ${m === 'n' ? best[m] : rpx(best[m])}` : '—')]),
+      h('div', { class: 'chart-wrap' }, chartEl(d.chart, m)),
+    ]);
+  }
 
   // ───────────────────────── editor ─────────────────────────
   function renderEditor(it) {
@@ -1000,7 +1584,7 @@
   // ───────────────────────── modal ─────────────────────────
   function openModal(m) { S.modal = m; renderModal(); }
   function closeModal() { S.modal = null; const el = $('.modal'); if (el) el.remove(); }
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal && S.modal.kind !== 'progress') { if (S.modal.kind === 'depo') stopDepo(); closeModal(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal && S.modal.kind !== 'progress') { if (S.modal.kind === 'depo') stopDepo(); if (S.modal.kind === 'renew') stopRenew(); closeModal(); } });
   function renderModal() {
     const old = $('.modal'); if (old) old.remove();
     const m = S.modal; if (!m) return;
@@ -1033,6 +1617,12 @@
       ]);
     } else if (m.kind === 'depo') {
       card = depoCard(m);
+    } else if (m.kind === 'renew') {
+      card = renewCard(m);
+    } else if (m.kind === 'user') {
+      card = userCard(m);
+    } else if (m.kind === 'hist') {
+      card = histCard(m);
     } else if (m.kind === 'progress') {
       const step = (i, label) => h('div', { class: m.step > i ? 'done' : m.step === i ? 'on' : '' }, [h('span', { class: 'ck' }, m.step > i ? I('check') : null), label]);
       card = h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt', 'aria-busy': String(m.step < 3) }, [
@@ -1043,7 +1633,7 @@
         h('footer', null, m.step >= 3 || m.error ? [m.error ? h('button', { class: 'btn', type: 'button', onclick: () => openModal({ kind: 'review' }) }, 'Kembali') : null, h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Selesai')] : [h('span', { class: 'hint', text: 'Jangan tutup halaman ini…' })]),
       ]);
     }
-    const ov = h('div', { class: 'modal', onclick: (e) => { if (e.target === ov && m.kind !== 'progress' && m.kind !== 'depo') closeModal(); } }, card);
+    const ov = h('div', { class: 'modal', onclick: (e) => { if (e.target === ov && !['progress', 'depo', 'renew', 'user'].includes(m.kind)) closeModal(); } }, card);
     document.body.appendChild(ov);
     const f = card.querySelector('footer .btn.primary:not([disabled])') || card.querySelector('button');
     if (f) f.focus();
