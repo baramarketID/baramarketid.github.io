@@ -418,3 +418,11 @@ svg.chart .bar.now{fill:var(--flame-b);opacity:.9}
 svg.chart .axl{fill:var(--faint);font-size:11px;font-family:var(--font-body)}
 .tbl td.inv b{display:block;font-weight:600}
 .tbl td.inv small{display:block;font-size:.74rem;color:var(--faint);font-family:var(--font-mono)}
+/* tombol kembali ke website */
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-weight:600;font-size:.9rem;border-radius:10px;flex:none}
+.back:hover{color:var(--ink)}
+.back svg{width:16px;height:16px}
+.back.in-card{margin:-6px 0 16px}
+.back.in-top{padding:8px 10px 8px 6px;margin-left:-6px;border:1px solid transparent}
+.back.in-top:hover{background:var(--surface);border-color:var(--line)}
+@media (max-width:560px){ .back.in-top span{display:none} .back.in-top{padding:8px} }
