@@ -1,0 +1,864 @@
+/* Kelola Bot Topup — portal penyewa (Baramarket).
+ * Semua data lewat /api/portal (Cloudflare Functions). Teks wording selalu dirender sebagai TEKS (textContent),
+ * tidak pernah sebagai HTML, jadi wording apa pun aman ditampilkan. */
+(() => {
+  'use strict';
+  const API = '/api/portal';
+  const MAIN_BOT = '0812-6642-6608';               // nomor bot topup utama Baramarket (pengirim kode OTP)
+  const PAGES_URL = 'https://baramarket.pages.dev/portal/';
+  const READMORE = '‎'.repeat(4001);
+  const LS_PHONE = 'bmp-phone', LS_BOT = 'bmp-bot';
+
+  // ───────────────────────── ikon (konstan, aman) ─────────────────────────
+  const P = {
+    bot: '<path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>',
+    store: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/>',
+    menu: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    cart: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.5L21 8H6"/>',
+    wallet: '<path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v3"/><path d="M3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 12h-4a2 2 0 0 0 0 4h4z"/>',
+    users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+    spark: '<path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+    lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+    info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    chev: '<path d="m6 9 6 6 6-6"/>',
+    back: '<path d="m15 18-6-6 6-6"/>',
+    rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
+    undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
+    book: '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+    wand: '<path d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8 19 13M15 9h.01M17.8 6.2 19 5M3 21l9-9M12.2 6.2 11 5"/>',
+    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+    swap: '<path d="M16 3l4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/>',
+    trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+    phone: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+    more: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  };
+  const icon = (n, cls) => `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
+
+  // ───────────────────────── DOM ─────────────────────────
+  function h(tag, attrs, kids) {
+    const e = document.createElement(tag);
+    if (attrs) for (const k of Object.keys(attrs)) {
+      const v = attrs[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k === 'icon') e.insertAdjacentHTML('afterbegin', icon(v));   // hanya ikon konstan di atas
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+      else if (k === 'value') e.value = v;
+      else if (k === 'style') e.style.cssText = v;   // CSSOM (diizinkan CSP), bukan atribut style
+      else e.setAttribute(k, v === true ? '' : String(v));
+    }
+    add(e, kids);
+    return e;
+  }
+  function add(e, kids) {
+    if (kids === null || kids === undefined || kids === false) return;
+    if (Array.isArray(kids)) { kids.forEach((k) => add(e, k)); return; }
+    e.appendChild(typeof kids === 'string' || typeof kids === 'number' ? document.createTextNode(String(kids)) : kids);
+  }
+  const chevI = () => { const c = I('chev'); c.classList.add('chev'); return c; };
+  const I = (n) => { const s = document.createElement('span'); s.style.display = 'contents'; s.insertAdjacentHTML('afterbegin', icon(n)); return s.firstChild; };
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const app = () => document.getElementById('app');
+  function mount(node) { const a = app(); a.textContent = ''; a.appendChild(node); }
+
+  // ───────────────────────── keadaan ─────────────────────────
+  const S = {
+    phone: '', to: '', cooldownUntil: 0, me: null, botId: '', cat: null, byKey: {}, state: null, draft: {}, hostAlive: true,
+    group: '', sel: '', q: '', saveState: '', saveAt: 0, saveTimer: null, pv: 'new', modal: null, menu: false, booted: false,
+  };
+  const ls = { get: (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* abaikan */ } } };
+
+  // ───────────────────────── API ─────────────────────────
+  async function api(path, body, opt = {}) {
+    let r;
+    try {
+      r = await fetch(API + path, { method: body ? 'POST' : 'GET', credentials: 'same-origin', cache: 'no-store', headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+    } catch (e) { return { ok: false, error: 'Tidak bisa terhubung. Cek koneksi internet kamu.', _status: 0 }; }
+    let d;
+    try { d = await r.json(); } catch (e) { d = { ok: false, error: `Server tidak merespons dengan benar (${r.status}).`, _bad: true }; }
+    d._status = r.status;
+    if (r.status === 401 && d.login && !opt.quiet) { toLogin('Sesi login sudah habis. Masuk lagi ya.'); }
+    return d;
+  }
+
+  // ───────────────────────── mesin render (SAMA dengan app/lib/wordingCatalog.js → renderText) ─────────────────────────
+  function renderText(tpl, vars, opt) {
+    const optSet = new Set(opt || []);
+    const has = (k) => Object.prototype.hasOwnProperty.call(vars, k);
+    const empty = (k) => !has(k) || vars[k] === null || vars[k] === undefined || vars[k] === '';
+    const lines = String(tpl == null ? '' : tpl).split('\n');
+    const out = [];
+    let skipBlank = false;
+    for (const line of lines) {
+      let drop = false;
+      const re = /@([a-zA-Z][a-zA-Z0-9]*)/g;
+      let m;
+      while ((m = re.exec(line))) { const k = m[1].toLowerCase(); if (optSet.has(k) && empty(k)) { drop = true; break; } }
+      if (drop) { if (out.length && out[out.length - 1] === '') skipBlank = true; continue; }
+      if (skipBlank && line === '') { skipBlank = false; continue; }
+      skipBlank = false;
+      out.push(line.replace(/@([a-zA-Z][a-zA-Z0-9]*)/g, (s, k) => {
+        const key = k.toLowerCase();
+        if (key === 'readmore' && !has('readmore')) return READMORE;
+        return has(key) && vars[key] !== null && vars[key] !== undefined ? String(vars[key]) : s;
+      }));
+    }
+    return out.join('\n');
+  }
+  /** Validasi (SAMA dengan wordingCatalog.clean). */
+  function cleanText(item, raw) {
+    let v = String(raw == null ? '' : raw).replace(/\r/g, '');
+    v = v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
+    if (item.kind === 'short') v = v.replace(/\s+/g, ' ').trim();
+    else v = v.split('\n').map((l) => l.replace(/[ \t]+$/, '')).join('\n').replace(/^\n+|\n+$/g, '');
+    const len = [...v].length;
+    const min = item.min || 1;
+    if (len < min) throw new Error(min > 1 ? `Minimal ${min} karakter.` : 'Tidak boleh kosong.');
+    if (len > item.max) throw new Error(`Terlalu panjang: ${len}/${item.max} karakter.`);
+    for (const t of item.req || []) if (!new RegExp(`@${t}(?![a-zA-Z0-9])`, 'i').test(v)) throw new Error(`Wajib memuat @${t}.`);
+    return v;
+  }
+
+  // ───────────────────────── nilai wording ─────────────────────────
+  const items = () => (S.cat ? S.cat.items : []);
+  const isProfile = (it) => it.g === 'profil';
+  function liveCustom(it) {
+    const st = S.state || {};
+    if (isProfile(it)) { const p = st.profile || {}; return (p.custom || []).includes(it.key) ? (p[it.key] || '') : null; }
+    const v = (st.values || {})[it.key];
+    return typeof v === 'string' && v.trim() ? v : null;
+  }
+  function liveText(it) {
+    if (isProfile(it)) { const p = (S.state && S.state.profile) || {}; return typeof p[it.key] === 'string' && p[it.key] ? p[it.key] : it.def; }
+    const c = liveCustom(it);
+    return c !== null ? c : it.def;
+  }
+  const hasDraft = (k) => Object.prototype.hasOwnProperty.call(S.draft, k);
+  function editText(it) {
+    if (!hasDraft(it.key)) return liveText(it);
+    return S.draft[it.key] === null ? it.def : S.draft[it.key];
+  }
+  const norm = (it, v) => { try { return cleanText({ ...it, min: 0, max: 1e9, req: [] }, v); } catch (e) { return String(v); } };
+  /** Perubahan yang akan diluncurkan: teks baru, null (= kembali ke bawaan), atau undefined (tidak berubah). */
+  function changeOf(it) {
+    if (!hasDraft(it.key)) return undefined;
+    const d = S.draft[it.key];
+    const custom = liveCustom(it);
+    if (d === null) return custom !== null ? null : undefined;
+    if (norm(it, d) === norm(it, liveText(it))) return undefined;
+    if (!isProfile(it) && norm(it, d) === norm(it, it.def)) return custom !== null ? null : undefined;
+    return d;
+  }
+  const changedItems = () => items().filter((it) => changeOf(it) !== undefined);
+  function statusOf(it) {
+    const ch = changeOf(it);
+    if (ch !== undefined) return problems(it, editText(it)).errors.length ? 'err' : 'draft';
+    return liveCustom(it) !== null ? 'custom' : 'def';
+  }
+  const STATUS_LABEL = { def: 'Bawaan', custom: 'Kustom', draft: 'Belum diluncurkan', err: 'Perlu diperbaiki' };
+
+  function knownTags(it) {
+    const own = (it.tags || []).map((t) => t[0]);
+    return it.glob ? [...own, ...(S.cat.globals || []).map((t) => t[0])] : own;
+  }
+  function problems(it, text) {
+    const errors = [], warns = [];
+    try { cleanText(it, text); } catch (e) { errors.push(e.message); }
+    if (it.key === 'emoji' && text && !/^\p{Extended_Pictographic}/u.test(text.trim())) errors.push('Isi dengan satu emoji, mis. 💎');
+    if (it.key === 'invPrefix' && text && !/^[A-Za-z0-9-]{2,12}$/.test(text.trim())) errors.push('Hanya huruf, angka, atau tanda - (2–12 karakter).');
+    if (!isProfile(it)) {
+      const known = new Set(knownTags(it));
+      const unknown = new Set();
+      const re = /(^|[^A-Za-z0-9._%+-])@([a-zA-Z][a-zA-Z0-9]*)/g;
+      let m;
+      while ((m = re.exec(text))) { const k = m[2].toLowerCase(); if (!known.has(k)) unknown.add('@' + m[2]); }
+      if (unknown.size) warns.push(`Kode ${[...unknown].slice(0, 4).join(', ')} tidak dikenal — akan tampil apa adanya. Klik kode di atas untuk memakai yang benar.`);
+    }
+    return { errors, warns };
+  }
+
+  // ───────────────────────── pratinjau ─────────────────────────
+  const curOf = (key) => { const it = S.byKey[key]; return it ? editText(it) : ''; };
+  function nowWib() {
+    const d = new Date();
+    const f = (o) => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', ...o }).format(d);
+    return { hari: f({ weekday: 'long' }), tanggal: f({ day: 'numeric', month: 'long', year: 'numeric' }), jam: f({ hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':') };
+  }
+  function varsOf(it) {
+    const v = {};
+    const toko = curOf('storeName') || 'TOKO KAMU';
+    if (it.glob) {
+      for (const [k, , s] of S.cat.globals || []) v[k] = s;
+      Object.assign(v, nowWib(), { toko, bot: curOf('botName') || 'BOT TOPUP' });
+      delete v.readmore;
+    }
+    for (const [k, , s] of it.tags || []) v[k] = s;
+    if ('toko' in v) v.toko = toko;
+    if ('emoji' in v) v.emoji = curOf('emoji') || '🔥';
+    if ('invoice' in v) v.invoice = `${(curOf('invPrefix') || 'TRX-').replace(/-?$/, '-')}1730000000-AB12`;
+    if ('penutup' in v) v.penutup = (curOf('suksesText') || '_Terima kasih!_ ✨').replace(/@toko/gi, toko);
+    return v;
+  }
+  function listPreview() {
+    const head = S.byKey.listHead, item = S.byKey.listItem, foot = S.byKey.katalogText;
+    const hv = varsOf(head);
+    const rows = [
+      { no: '01', nama: 'Weekly Diamond Pass', harga: 'Rp 28.560', kode: 'MLWP', status: '✅' },
+      { no: '02', nama: '86 Diamonds', harga: 'Rp 21.150', kode: 'ML86', status: '✅' },
+    ];
+    let out = renderText(curOf('listHead'), hv).replace(/\n*$/, '\n\n');
+    for (const r of rows) out += renderText(curOf('listItem'), { ...varsOf(item), ...r }).replace(/\n*$/, '\n\n');
+    const f = curOf('katalogText');
+    if (f && f.trim()) out += `${f.replace(/@toko/gi, curOf('storeName') || 'TOKO KAMU')}\n`;
+    void foot;
+    return out.replace(/\n+$/, '');
+  }
+  function groupPreview() {
+    const g = S.byKey.getGroup, gi = S.byKey.getGroupItem;
+    const daftar = (g.combo.rows || []).map((r) => renderText(curOf('getGroupItem'), { ...varsOf(gi), ...r })).join('\n');
+    return renderText(curOf('getGroup'), { ...varsOf(g), daftar, jumlah: String((g.combo.rows || []).length) }, g.opt);
+  }
+  function profilePreview(it, text) {
+    const toko = curOf('storeName') || 'TOKO KAMU';
+    if (it.key === 'storeName' || it.key === 'botName') return renderText(curOf('menuText'), { ...varsOf(S.byKey.menuText) }, S.byKey.menuText.opt).split('\n').slice(0, 6).join('\n');
+    if (it.key === 'ownerName') return `👑 *OWNER ${toko}*\n\nHubungi owner untuk deposit, kendala order, atau bantuan:\n\n› Nama: ${text || '-'}\n› 0812xxxxxxx`;
+    if (it.key === 'emoji') return listPreview();
+    if (it.key === 'invPrefix') return renderText(curOf('orderProses'), varsOf(S.byKey.orderProses), S.byKey.orderProses.opt);
+    return text;
+  }
+  function previewOf(it, text) {
+    if (isProfile(it)) return profilePreview(it, text);
+    const target = it.previewOf ? S.byKey[it.previewOf] : it;
+    if (target && target.combo && target.combo.list) return listPreview();
+    if (target && target.key === 'getGroup') return groupPreview();
+    if (target && target !== it) return renderText(curOf(target.key), varsOf(target), target.opt);
+    return renderText(text, varsOf(it), it.opt);
+  }
+  const TRIGGER = {
+    menuText: 'menu', storeName: 'menu', botName: 'menu', ownerName: 'owner', produkText: 'produk', menuGame: 'get',
+    getGroup: '(tekan tombol) FREE FIRE 🔥', getGroupItem: '(tekan tombol) FREE FIRE 🔥', menuLain: 'get2', menuLainLayanan: '(tekan) PULSA',
+    menuLainProduk: '(tekan) TELKOMSEL', menuPpob: 'get3', menuPpobOperator: '(tekan) KUOTA', menuPpobLayanan: '(tekan) E-WALLET',
+    listHead: 'get ml', listItem: 'get ml', katalogText: 'get ml', emoji: 'get ml', nickMenu: 'ceknickmenu', nickAsk: 'cekml', nickRobloxAsk: 'cekroblox',
+    nickLoading: 'cekml 173059364 2890', nickML: 'cekml 173059364 2890', nickFF: 'cekff 12345678', nickGame: 'cekgenshinimpact 812345678 os_asia',
+    nickRoblox: 'cekroblox Builderman', nickGagal: 'cekml 1 1', orderKonfirmasi: 'TPO MLWP 173059364 2890', orderSaldoKurang: 'TP MLWP 173059364 2890',
+    orderProdukTidakAda: 'TP MLWPX 173059364 2890', orderQris: '(tekan) ✅ Konfirmasi', orderProses: '(tekan) ✅ Konfirmasi', invPrefix: '(tekan) ✅ Konfirmasi',
+    orderBatal: '(tekan) ❌ Batalkan', tpoBatal: 'BATALTPO', saldoProfil: 'saldo', daftarSukses: 'daftar', belumDaftar: 'saldo', depoTanya: 'depo',
+    depoQris: 'depo 25000', depoBatal: 'BATALDEPO', openText: 'open', closeText: 'close', doneText: 's  (reply pesan pembeli)', pendingText: 'p  (reply pesan pembeli)', botReply: 'bot',
+  };
+  const IMAGE = { produkText: 'Banner toko', orderQris: 'Gambar QRIS', depoQris: 'Gambar QRIS', nickRoblox: 'Foto avatar Roblox' };
+  const BUTTONS = {
+    menuText: ['Produk 🎮', 'Saldo 💰', 'Deposit 💳', 'Cek Nick 🔎'], storeName: ['Produk 🎮', 'Saldo 💰', 'Deposit 💳'], botName: ['Produk 🎮', 'Saldo 💰', 'Deposit 💳'],
+    produkText: ['Game Topup', 'List Manual', 'Saldo', 'Deposit'], menuGame: ['FREE FIRE 🔥', 'MOBA ⚔️', 'SHOOTER 🔫', 'Cek Nick Game 🔎'],
+    getGroup: ['Free Fire', 'Free Fire Max', '« Kembali'], getGroupItem: ['Free Fire', 'Free Fire Max', '« Kembali'],
+    menuLain: ['Pulsa', 'Data', 'PLN', '« Kembali'], menuLainLayanan: ['Telkomsel', 'Indosat', '« Kembali'], menuLainProduk: ['Umum', 'Transfer', '« Kembali'],
+    menuPpob: ['PULSA', 'KUOTA', 'E-WALLET', '« Kembali'], menuPpobOperator: ['Telkomsel', 'XL', '« Kembali'], menuPpobLayanan: ['Dana', 'OVO', '« Kembali'],
+    listHead: ['« Kembali'], listItem: ['« Kembali'], katalogText: ['« Kembali'], emoji: ['« Kembali'],
+    nickMenu: ['Mobile Legends', 'Free Fire', 'Roblox'], nickAsk: ['❌ Batal'], nickRobloxAsk: ['❌ Batal'], depoTanya: ['❌ Batal'],
+    orderKonfirmasi: ['✅ Konfirmasi', '❌ Batalkan'], orderQris: ['❌ Batalkan'], depoQris: ['❌ Batalkan'], belumDaftar: ['📝 Daftar'],
+    saldoProfil: ['Depobot', 'Riwayat Transaksi', 'Riwayat Deposit'], daftarSukses: ['Produk', 'Saldo', 'Deposit'],
+  };
+
+  /** Format WhatsApp → elemen DOM (tebal, miring, coret, mono, kutipan, mention, baca selengkapnya). Selalu teks, bukan HTML. */
+  function waFormat(text) {
+    const frag = document.createDocumentFragment();
+    const rmAt = text.search(/‎{200,}/);
+    if (rmAt >= 0) {
+      const rest = text.slice(rmAt).replace(/^‎+/, '');
+      frag.appendChild(waFormat(text.slice(0, rmAt)));
+      const more = h('span', { hidden: true });
+      more.appendChild(waFormat(rest));
+      const link = h('span', { class: 'rm', role: 'button', tabindex: '0', text: 'Baca selengkapnya', onclick: () => { more.hidden = false; link.remove(); } });
+      frag.appendChild(link); frag.appendChild(more);
+      return frag;
+    }
+    const parts = text.split('```');
+    parts.forEach((part, i) => {
+      if (i % 2 === 1 && i < parts.length - 1) { frag.appendChild(h('span', { class: 'mono', text: part.replace(/^\n|\n$/g, '') })); return; }
+      if (i % 2 === 1) part = '```' + part;   // pagar tidak berpasangan
+      const lines = part.split('\n');
+      lines.forEach((ln, j) => {
+        if (/^> /.test(ln)) { const q = h('span', { class: 'quote' }); inline(ln.slice(2), q); frag.appendChild(q); }
+        else { inline(ln, frag); if (j < lines.length - 1) frag.appendChild(document.createTextNode('\n')); }
+      });
+    });
+    return frag;
+  }
+  function inline(str, parent) {
+    const re = /([*_~`])([^\n]*?)\1|@\d{6,15}/g;
+    let last = 0, m;
+    const wordy = (ch) => /[A-Za-z0-9]/.test(ch || '');
+    while ((m = re.exec(str))) {
+      if (m[0][0] === '@') {
+        if (m.index > last) parent.appendChild(document.createTextNode(str.slice(last, m.index)));
+        parent.appendChild(h('span', { class: 'mention', text: m[0] }));
+        last = re.lastIndex; continue;
+      }
+      const inner = m[2];
+      const before = str[m.index - 1], after = str[re.lastIndex];
+      if (!inner || /^\s|\s$/.test(inner) || wordy(before) || wordy(after)) { re.lastIndex = m.index + 1; continue; }
+      if (m.index > last) parent.appendChild(document.createTextNode(str.slice(last, m.index)));
+      const tag = { '*': 'b', _: 'i', '~': 's', '`': 'code' }[m[1]];
+      const el = document.createElement(tag);
+      if (tag === 'code') el.textContent = inner; else inline(inner, el);
+      parent.appendChild(el);
+      last = re.lastIndex;
+    }
+    if (last < str.length) parent.appendChild(document.createTextNode(str.slice(last)));
+  }
+  function waPhone(it, rendered) {
+    const nm = curOf('botName') || 'BOT TOPUP';
+    const chat = h('div', { class: 'wa-chat' });
+    const trig = TRIGGER[it.key];
+    const tm = nowWib().jam;
+    if (trig) chat.appendChild(h('div', { class: 'bub out' }, [trig, h('span', { class: 'tm', text: tm + ' ✓✓' })]));
+    const b = h('div', { class: 'bub in' });
+    if (IMAGE[it.key]) b.appendChild(h('div', { class: 'img' }, [I('image'), IMAGE[it.key]]));
+    b.appendChild(waFormat(rendered || ' '));
+    b.appendChild(h('span', { class: 'tm', text: tm }));
+    chat.appendChild(b);
+    const btns = BUTTONS[it.key];
+    if (btns) chat.appendChild(h('div', { class: 'wa-btns' }, btns.map((x) => h('span', { text: x }))));
+    return h('div', { class: 'wa', 'aria-label': 'Pratinjau pesan WhatsApp' }, [
+      h('div', { class: 'wa-head' }, [h('span', { class: 'av', text: (nm[0] || 'B').toUpperCase() }), h('div', null, [h('b', { text: nm }), h('small', { text: 'online' })])]),
+      chat,
+    ]);
+  }
+
+  // ───────────────────────── notifikasi kecil ─────────────────────────
+  let toastT = null;
+  function toast(text, kind = 'ok') {
+    const old = $('.toast'); if (old) old.remove();
+    const t = h('div', { class: `toast ${kind}`, role: 'status' }, [I(kind === 'ok' ? 'check' : 'alert'), text]);
+    document.body.appendChild(t);
+    clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3600);
+  }
+  const msg = (kind, text) => h('div', { class: `msg ${kind}`, role: kind === 'err' ? 'alert' : null }, [I(kind === 'ok' ? 'check' : kind === 'info' ? 'info' : 'alert'), h('span', { text })]);
+  const fmtPhone = (p) => String(p || '').replace(/^62/, '0');
+  const dateID = (ms) => new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ms));
+
+  // ───────────────────────── LOGIN ─────────────────────────
+  function brand(sub) {
+    return h('div', { class: 'brand' }, [h('span', { class: 'mark', icon: 'bot' }), h('div', { class: 'tx' }, [h('b', { text: 'Kelola Bot Topup' }), h('span', { text: sub || 'BARAMARKET.ID' })])]);
+  }
+  function authShell(step, kids) {
+    return h('main', { class: 'auth' }, h('div', { class: 'auth-card' }, [brand(), h('div', { class: 'steps', 'aria-hidden': 'true' }, [1, 2, 3].map((i) => h('i', { class: i <= step ? 'on' : '' }))), kids]));
+  }
+  function toLogin(note) {
+    S.me = null; S.botId = ''; S.cat = null; S.modal = null;
+    renderPhone(note ? { info: note } : null);
+  }
+  function renderPhone(flash) {
+    const saved = S.phone || ls.get(LS_PHONE);
+    const inp = h('input', { id: 'ph', type: 'tel', inputmode: 'numeric', autocomplete: 'tel', placeholder: '81234567890', value: saved ? fmtPhone(saved).replace(/^0/, '') : '', 'aria-describedby': 'ph-hint', required: true, maxlength: '16' });
+    const btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Kirim kode OTP');
+    const err = h('div');
+    if (flash && flash.info) err.appendChild(msg('info', flash.info));
+    if (flash && flash.err) err.appendChild(msg('err', flash.err));
+    const form = h('form', { novalidate: true, onsubmit: async (e) => {
+      e.preventDefault();
+      let p = inp.value.replace(/\D/g, '');
+      if (p.startsWith('0')) p = '62' + p.slice(1); else if (p.startsWith('8')) p = '62' + p;
+      err.textContent = '';
+      if (!/^62\d{8,13}$/.test(p)) { err.appendChild(msg('err', 'Nomor belum benar. Contoh: 81234567890')); inp.focus(); return; }
+      btn.disabled = true; btn.textContent = ''; btn.append(h('span', { class: 'spin' }), 'Mengirim kode…');
+      const d = await api('/otp', { phone: p });
+      btn.disabled = false; btn.textContent = 'Kirim kode OTP';
+      if (!d.ok) { err.appendChild(msg('err', d.error || 'Gagal mengirim kode.')); if (d.wait) { S.phone = p; S.cooldownUntil = Date.now() + d.wait * 1000; } return; }
+      S.phone = p; ls.set(LS_PHONE, p); S.to = d.to || fmtPhone(p); S.cooldownUntil = Date.now() + (d.cooldown || 60) * 1000;
+      renderOtp();
+    } }, [
+      h('h1', { text: 'Masuk ke bot topup-mu' }),
+      h('p', { class: 'lead', text: 'Atur wording dan profil bot langsung dari sini. Masukkan nomor WhatsApp OWNER bot (bukan nomor bot).' }),
+      err,
+      h('div', { class: 'field' }, [h('label', { for: 'ph', text: 'Nomor owner' }), h('div', { class: 'phone' }, [h('span', { text: '+62' }), inp]), h('p', { class: 'hint', id: 'ph-hint', text: 'Nomor yang terdaftar saat sewa bot topup.' })]),
+      btn,
+      h('div', { class: 'trust' }, [I('shield'), h('span', { text: `Kode 8 digit dikirim lewat WhatsApp dari bot Baramarket (${MAIN_BOT}). Kami tidak pernah meminta kode ini lewat chat atau telepon.` })]),
+    ]);
+    mount(authShell(1, form));
+    setTimeout(() => inp.focus(), 50);
+  }
+
+  let cdTimer = null;
+  function renderOtp(flash) {
+    const boxes = [];
+    const wrap = h('div', { class: 'otp', role: 'group', 'aria-label': 'Kode OTP 8 digit' });
+    const err = h('div');
+    if (flash) err.appendChild(msg(flash.kind || 'err', flash.text));
+    const submit = h('button', { class: 'btn primary block', type: 'submit', disabled: true }, 'Masuk');
+    const code = () => boxes.map((b) => b.value).join('');
+    const sync = () => { submit.disabled = code().length !== 8; };
+    const fill = (from, digits) => { for (let i = 0; i < digits.length && from + i < 8; i++) boxes[from + i].value = digits[i]; const n = Math.min(7, from + digits.length); boxes[n].focus(); sync(); if (code().length === 8) form.requestSubmit(); };
+    for (let i = 0; i < 8; i++) {
+      const b = h('input', { inputmode: 'numeric', pattern: '[0-9]*', maxlength: '8', autocomplete: i === 0 ? 'one-time-code' : 'off', 'aria-label': `Digit ${i + 1}` });
+      b.addEventListener('input', () => { wrap.classList.remove('bad'); const d = b.value.replace(/\D/g, ''); b.value = ''; if (d) fill(i, d); else sync(); });
+      b.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !b.value && i > 0) { boxes[i - 1].value = ''; boxes[i - 1].focus(); sync(); e.preventDefault(); }
+        if (e.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
+        if (e.key === 'ArrowRight' && i < 7) boxes[i + 1].focus();
+      });
+      b.addEventListener('paste', (e) => { const d = ((e.clipboardData || window.clipboardData).getData('text') || '').replace(/\D/g, ''); if (d) { e.preventDefault(); fill(0, d.slice(0, 8)); } });
+      b.addEventListener('focus', () => b.select());
+      boxes.push(b); wrap.appendChild(b);
+    }
+    const resend = h('button', { class: 'linkbtn', type: 'button', onclick: async () => {
+      resend.disabled = true;
+      const d = await api('/otp', { phone: S.phone });
+      err.textContent = '';
+      if (!d.ok) { err.appendChild(msg('err', d.error || 'Gagal mengirim ulang.')); if (d.wait) S.cooldownUntil = Date.now() + d.wait * 1000; tick(); return; }
+      S.cooldownUntil = Date.now() + (d.cooldown || 60) * 1000; err.appendChild(msg('ok', 'Kode baru sudah dikirim.')); boxes.forEach((x) => { x.value = ''; }); boxes[0].focus(); sync(); tick();
+    } }, 'Kirim ulang kode');
+    function tick() {
+      clearInterval(cdTimer);
+      const step = () => {
+        const left = Math.ceil((S.cooldownUntil - Date.now()) / 1000);
+        if (!document.body.contains(resend)) { clearInterval(cdTimer); return; }
+        if (left > 0) { resend.disabled = true; resend.textContent = `Kirim ulang (${left} dtk)`; } else { resend.disabled = false; resend.textContent = 'Kirim ulang kode'; clearInterval(cdTimer); }
+      };
+      step(); cdTimer = setInterval(step, 1000);
+    }
+    const form = h('form', { novalidate: true, onsubmit: async (e) => {
+      e.preventDefault();
+      if (code().length !== 8) return;
+      submit.disabled = true; submit.textContent = ''; submit.append(h('span', { class: 'spin' }), 'Memeriksa…');
+      const d = await api('/verify', { phone: S.phone, code: code() }, { quiet: true });
+      submit.textContent = 'Masuk';
+      err.textContent = '';
+      if (!d.ok) {
+        err.appendChild(msg('err', d.error || 'Kode salah.'));
+        wrap.classList.remove('bad'); void wrap.offsetWidth; wrap.classList.add('bad');
+        boxes.forEach((x) => { x.value = ''; }); boxes[0].focus(); sync();
+        return;
+      }
+      await loadMe();
+    } }, [
+      h('h1', { text: 'Masukkan kode OTP' }),
+      h('p', { class: 'lead' }, ['Kode 8 digit sudah dikirim ke WhatsApp ', h('b', { text: S.to || fmtPhone(S.phone) }), ` dari bot Baramarket (${MAIN_BOT}). Berlaku 5 menit.`]),
+      err, wrap, submit,
+      h('div', { class: 'row between', style: 'margin-top:14px' }, [h('button', { class: 'linkbtn', type: 'button', onclick: () => renderPhone() }, '← Ganti nomor'), resend]),
+      h('p', { class: 'hint', style: 'margin-top:14px' }, 'Belum masuk dalam 1 menit? Pastikan nomor yang dimasukkan adalah nomor OWNER yang terdaftar saat sewa, lalu kirim ulang.'),
+    ]);
+    mount(authShell(2, form));
+    tick();
+    setTimeout(() => boxes[0].focus(), 50);
+  }
+
+  async function loadMe() {
+    const d = await api('/me', null, { quiet: true });
+    if (!d.ok) { if (d._status === 401) return renderPhone(); return renderFatal(d.error); }
+    S.me = d;
+    if (!d.bots.length) return renderFatal('Nomor ini belum punya bot topup aktif. Kalau baru sewa, tunggu sampai bot selesai dipasang.', true);
+    const last = ls.get(LS_BOT);
+    if (d.bots.length === 1) return selectBot(d.bots[0].id);
+    if (last && d.bots.some((b) => b.id === last) && S.booted) return selectBot(last);
+    return renderPicker();
+  }
+  function botMeta(b) {
+    const exp = b.expiredAt ? (b.expiredAt > Date.now() ? `Aktif s/d ${dateID(b.expiredAt)}` : 'Masa sewa habis') : '';
+    return [b.botNumber ? fmtPhone(b.botNumber) : 'Belum dipairing', exp].filter(Boolean).join(' · ');
+  }
+  function renderPicker() {
+    mount(authShell(3, h('div', null, [
+      h('h1', { text: 'Pilih bot' }),
+      h('p', { class: 'lead', text: 'Nomor ini memiliki beberapa bot topup. Pilih yang mau diatur.' }),
+      h('div', { class: 'picker' }, S.me.bots.map((b) => h('button', { class: 'botcard', type: 'button', onclick: () => selectBot(b.id) }, [
+        h('span', { class: 'av', text: (b.storeName || 'B')[0].toUpperCase() }),
+        h('span', null, [h('b', { text: b.storeName || 'Bot topup' }), h('small', { text: botMeta(b) })]),
+      ]))),
+    ])));
+  }
+  function renderFatal(text, withLogout) {
+    mount(h('main', { class: 'auth' }, h('div', { class: 'auth-card' }, [brand(), msg('err', text || 'Terjadi kesalahan.'),
+      h('div', { class: 'row' }, [h('button', { class: 'btn', type: 'button', onclick: () => location.reload() }, 'Muat ulang'), withLogout ? h('button', { class: 'btn ghost', type: 'button', onclick: logout }, 'Keluar') : null])])));
+  }
+
+  async function selectBot(id) {
+    mount(h('div', { class: 'boot' }, [h('span', { class: 'spin' }), 'Memuat pengaturan bot…']));
+    const d = await api(`/data?tenant=${encodeURIComponent(id)}`);
+    if (!d.ok) { if (d._status === 401) return; return renderFatal(d.error, true); }
+    S.botId = id; ls.set(LS_BOT, id);
+    S.cat = d.catalog; S.byKey = Object.fromEntries(d.catalog.items.map((i) => [i.key, i]));
+    S.state = d.state; S.hostAlive = d.hostAlive;
+    S.draft = {};
+    for (const [k, v] of Object.entries((d.draft && d.draft.values) || {})) if (S.byKey[k] && (v === null || typeof v === 'string')) S.draft[k] = v;
+    for (const it of items()) if (hasDraft(it.key) && changeOf(it) === undefined) delete S.draft[it.key];
+    S.saveAt = (d.draft && d.draft.updatedAt) || 0;
+    S.group = S.group && S.cat.groups.some((g) => g.id === S.group) ? S.group : (S.cat.groups[0] || {}).id;
+    const inGroup = items().filter((x) => x.g === S.group);
+    S.sel = inGroup.some((x) => x.key === S.sel) ? S.sel : (inGroup[0] || {}).key;
+    renderApp();
+  }
+
+  // ───────────────────────── APLIKASI ─────────────────────────
+  const bot = () => (S.me && S.me.bots.find((b) => b.id === S.botId)) || {};
+  function renderApp() {
+    const root = h('div', { class: 'app' });
+    root.appendChild(renderTop());
+    const notes = h('div', { class: 'banner', id: 'banners' });
+    if (!S.hostAlive) notes.appendChild(msg('warn', 'Server bot sedang offline atau restart. Kamu tetap bisa mengedit — perubahan tersimpan sebagai draf dan bisa diluncurkan setelah server online.'));
+    if (!S.state) notes.appendChild(msg('warn', 'Bot ini belum menyalin pengaturannya ke website, jadi yang tampil adalah wording bawaan. Kalau kamu pernah mengubah wording lewat chat, tunggu bot online lalu muat ulang.'));
+    if (notes.childNodes.length) root.appendChild(notes);
+    const shell = h('div', { class: 'shell' }, [renderSide(), h('div', { class: 'main', id: 'main' }, renderMain())]);
+    root.appendChild(shell);
+    root.appendChild(h('div', { id: 'dock-slot' }));
+    mount(root);
+    renderDock();
+    if (S.modal) renderModal();
+  }
+
+  function renderTop() {
+    const b = bot();
+    const connected = b.connection === 'connected';
+    const chip = h(S.me.bots.length > 1 ? 'button' : 'div', { class: 'botchip', type: S.me.bots.length > 1 ? 'button' : null, onclick: S.me.bots.length > 1 ? () => { if (confirmLeave()) renderPicker(); } : null, title: S.me.bots.length > 1 ? 'Ganti bot' : null }, [
+      h('span', { class: 'av', text: (curOf('storeName') || b.storeName || 'B')[0].toUpperCase() }),
+      h('span', { class: 't' }, [h('b', { text: curOf('storeName') || b.storeName || 'Bot topup' }), h('small', null, [h('span', { class: `dot ${connected ? 'on' : 'off'}` }), connected ? 'Bot online' : 'Bot offline', b.expiredAt ? ` · ${b.expiredAt > Date.now() ? 's/d ' + dateID(b.expiredAt) : 'sewa habis'}` : ''])]),
+    ]);
+    const pop = h('div', { class: 'menu-pop', role: 'menu', hidden: !S.menu }, [
+      h('div', { class: 'who', text: `Masuk sebagai ${S.me.phone}` }),
+      S.me.bots.length > 1 ? h('button', { type: 'button', role: 'menuitem', onclick: () => { S.menu = false; if (confirmLeave()) renderPicker(); } }, [I('swap'), 'Ganti bot']) : null,
+      h('button', { type: 'button', role: 'menuitem', onclick: () => { S.menu = false; discardAll(); } }, [I('trash'), 'Buang semua draf']),
+      h('hr'),
+      h('button', { type: 'button', role: 'menuitem', onclick: logout }, [I('logout'), 'Keluar']),
+      h('button', { type: 'button', role: 'menuitem', class: 'danger', onclick: logoutAll }, [I('lock'), 'Keluar dari semua perangkat']),
+    ]);
+    const more = h('button', { class: 'btn ghost sm', type: 'button', 'aria-label': 'Menu akun', 'aria-expanded': String(S.menu), onclick: (e) => { e.stopPropagation(); S.menu = !S.menu; pop.hidden = !S.menu; more.setAttribute('aria-expanded', String(S.menu)); } }, I('more'));
+    return h('header', { class: 'top' }, h('div', { class: 'top-in' }, [brand(), h('div', { class: 'botsel' }, [chip, h('div', { class: 'menu' }, [more, pop])])]));
+  }
+  document.addEventListener('click', (e) => { if (S.menu && !e.target.closest('.menu')) { S.menu = false; const p = $('.menu-pop'); if (p) p.hidden = true; } });
+
+  function groupCounts(gid) {
+    const list = items().filter((i) => i.g === gid);
+    let draft = 0, err = 0, custom = 0;
+    for (const it of list) { const s = statusOf(it); if (s === 'draft') draft++; else if (s === 'err') err++; else if (s === 'custom') custom++; }
+    return { draft, err, custom, n: list.length };
+  }
+  function groupBadge(gid) {
+    const c = groupCounts(gid);
+    if (c.err) return h('span', { class: 'badge err', title: 'Perlu diperbaiki', text: String(c.err) });
+    if (c.draft) return h('span', { class: 'badge draft', title: 'Belum diluncurkan', text: String(c.draft) });
+    return h('span', { class: 'badge', title: `${c.n} pengaturan`, text: String(c.n) });
+  }
+  function renderSide() {
+    const q = h('input', { type: 'search', placeholder: 'Cari: cekml, sukses, deposit…', value: S.q, 'aria-label': 'Cari pengaturan' });
+    q.addEventListener('input', () => { S.q = q.value; refreshMain(); });
+    return h('aside', { class: 'side' }, [
+      h('div', { class: 'search' }, [I('search'), q]),
+      h('nav', { class: 'groups', id: 'groups', 'aria-label': 'Kelompok pengaturan' }, S.cat.groups.map((g) => h('button', {
+        class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
+        onclick: () => { S.group = g.id; S.q = ''; const first = items().find((x) => x.g === g.id); S.sel = first ? first.key : ''; renderApp(); },
+      }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)]))),
+      h('p', { class: 'side-note', text: 'Perubahan tersimpan otomatis sebagai draf. Bot baru berubah setelah kamu menekan Luncurkan.' }),
+    ]);
+  }
+  function refreshSide() {
+    const nav = $('#groups'); if (!nav) return;
+    nav.querySelectorAll('.gbtn').forEach((b) => { const old = b.querySelector('.badge'); if (old) old.replaceWith(groupBadge(b.getAttribute('data-g'))); });
+  }
+
+  function visibleItems() {
+    if (S.q.trim()) {
+      const q = S.q.trim().toLowerCase();
+      return items().filter((i) => [i.label, i.where, i.key, i.desc].join(' ').toLowerCase().includes(q));
+    }
+    return items().filter((i) => i.g === S.group);
+  }
+  function renderMain() {
+    const g = S.cat.groups.find((x) => x.id === S.group) || {};
+    const list = visibleItems();
+    const head = S.q.trim()
+      ? h('div', { class: 'ghead' }, [h('h2', { text: `Hasil pencarian "${S.q.trim()}"` }), h('p', { text: `${list.length} pengaturan ditemukan.` })])
+      : h('div', { class: 'ghead' }, [h('h2', { text: g.label }), h('p', { text: g.desc })]);
+    if (!list.length) return [head, h('div', { class: 'empty' }, [I('search'), h('h3', { text: 'Tidak ada yang cocok' }), h('p', { text: 'Coba kata lain, mis. "nickname", "QRIS", atau "grup".' })])];
+    const grid = h('div', { class: 'items', id: 'items' }, list.map((it, i) => itemCard(it, i)));
+    const sel = list.find((x) => x.key === S.sel) || (S.q.trim() ? null : list[0]);
+    return [head, grid, sel ? renderEditor(sel) : h('div', { class: 'empty' }, [I('eye'), h('h3', { text: 'Pilih salah satu' }), h('p', { text: 'Klik pengaturan di atas untuk mulai mengedit.' })])];
+  }
+  function refreshMain() { const m = $('#main'); if (!m) return; m.textContent = ''; add(m, renderMain()); refreshSide(); }
+  function itemCard(it, i) {
+    const st = statusOf(it);
+    return h('button', { class: `item${it.key === S.sel ? ' on' : ''}`, type: 'button', 'data-k': it.key, style: `animation-delay:${Math.min(i, 12) * 25}ms`, onclick: () => {
+      S.sel = it.key; refreshMain();
+      const ed = $('#editor'); if (ed && window.innerWidth < 1060) ed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } }, [h('span', { class: 'it' }, [h('b', { text: it.label }), h('span', { class: `chip ${st}`, text: STATUS_LABEL[st] })]), h('small', { text: it.where })]);
+  }
+  function refreshCard(it) {
+    const c = document.querySelector(`.item[data-k="${it.key}"] .chip`);
+    if (c) { const st = statusOf(it); c.className = `chip ${st}`; c.textContent = STATUS_LABEL[st]; }
+    const ch = $('#ed-chip'); if (ch) { const st = statusOf(it); ch.className = `chip ${st}`; ch.textContent = STATUS_LABEL[st]; }
+  }
+
+  // ───────────────────────── editor ─────────────────────────
+  function renderEditor(it) {
+    const short = it.kind === 'short';
+    const ta = short
+      ? h('input', { class: 'ta', type: 'text', value: editText(it), maxlength: String(it.max + 20), id: 'ed-ta', 'aria-label': it.label, spellcheck: 'false' })
+      : h('textarea', { class: 'ta', id: 'ed-ta', 'aria-label': it.label, spellcheck: 'false', rows: String(Math.min(18, Math.max(8, editText(it).split('\n').length + 2))) });
+    if (!short) ta.value = editText(it);
+    const counter = h('span', { class: 'counter', id: 'ed-count' });
+    const probs = h('div', { class: 'probs', id: 'ed-probs' });
+    const pvWrap = h('div', { id: 'ed-pv' });
+    const pvTabs = h('div', { class: 'pv-tabs', role: 'tablist' }, [
+      h('button', { type: 'button', role: 'tab', class: S.pv === 'new' ? 'on' : '', 'aria-selected': String(S.pv === 'new'), onclick: () => { S.pv = 'new'; refreshMain(); } }, 'Wording baru'),
+      h('button', { type: 'button', role: 'tab', class: S.pv === 'live' ? 'on' : '', 'aria-selected': String(S.pv === 'live'), onclick: () => { S.pv = 'live'; refreshMain(); } }, 'Di bot sekarang'),
+    ]);
+
+    const update = () => {
+      const v = ta.value;
+      const len = [...v].length;
+      counter.textContent = `${len}/${it.max}`;
+      counter.className = `counter${len > it.max ? ' bad' : ''}`;
+      const pr = problems(it, v);
+      probs.textContent = '';
+      pr.errors.forEach((e) => probs.appendChild(msg('err', e)));
+      pr.warns.forEach((w) => probs.appendChild(msg('warn', w)));
+      ta.classList.toggle('bad', pr.errors.length > 0 && changeOf(it) !== undefined);
+      pvWrap.textContent = '';
+      const shown = S.pv === 'live' ? previewLive(it) : previewOf(it, v);
+      pvWrap.appendChild(waPhone(it, shown));
+      refreshCard(it); refreshSide(); renderDock();
+    };
+    const setValue = (v, focus) => { ta.value = v; onEdit(it, v); update(); if (focus) ta.focus(); };
+    ta.addEventListener('input', () => { onEdit(it, ta.value); update(); });
+
+    const insertTag = (tag) => {
+      const s = ta.selectionStart != null ? ta.selectionStart : ta.value.length, e = ta.selectionEnd != null ? ta.selectionEnd : s;
+      const ins = '@' + tag;
+      ta.setRangeText ? ta.setRangeText(ins, s, e, 'end') : (ta.value = ta.value.slice(0, s) + ins + ta.value.slice(e));
+      onEdit(it, ta.value); update(); ta.focus();
+    };
+    const tagBtn = (t, kind) => h('button', { type: 'button', class: `tag${(it.req || []).includes(t[0]) ? ' req' : ''}${(it.opt || []).includes(t[0]) ? ' opt' : ''}${kind === 'glob' ? ' glob' : ''}`, title: `${t[1]}${t[2] ? ' — contoh: ' + String(t[2]).split('\n')[0] : ''}`, onclick: () => insertTag(t[0]) }, ['@' + t[0], h('em', { text: t[1] })]);
+    const tags = short ? null : h('div', null, [
+      h('div', { class: 'lbl', style: 'margin-bottom:8px' }, [h('span', { text: 'Kode pengganti · klik untuk menyisipkan' })]),
+      h('div', { class: 'tags' }, [...(it.tags || []).map((t) => tagBtn(t)), ...(it.glob ? (S.cat.globals || []).map((t) => tagBtn(t, 'glob')) : [])]),
+    ]);
+
+    const live = liveText(it), custom = liveCustom(it) !== null;
+    const actions = h('div', { class: 'actions' }, [
+      it.ex ? h('button', { class: 'btn sm', type: 'button', onclick: () => setValue(it.ex, true) }, [I('wand'), 'Pakai contoh']) : null,
+      h('button', { class: 'btn sm', type: 'button', disabled: !custom && !hasDraft(it.key) && !isProfile(it) ? true : null, onclick: () => {
+        if (isProfile(it)) { if (liveCustom(it) !== null) { S.draft[it.key] = null; } else delete S.draft[it.key]; ta.value = it.def; scheduleSave(); update(); return; }
+        if (custom) S.draft[it.key] = null; else delete S.draft[it.key];
+        ta.value = it.def; scheduleSave(); update(); toast('Dikembalikan ke wording bawaan (belum diluncurkan).');
+      } }, [I('undo'), 'Kembalikan bawaan']),
+      hasDraft(it.key) ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { delete S.draft[it.key]; scheduleSave(); refreshMain(); toast('Perubahan dibatalkan.'); } }, [I('x'), 'Batalkan perubahan']) : null,
+    ]);
+
+    const rules = [
+      it.req && it.req.length ? `Wajib memuat ${it.req.map((t) => '@' + t).join(' dan ')}.` : null,
+      `Maksimal ${it.max} karakter${it.min > 1 ? `, minimal ${it.min}` : ''}.`,
+      it.opt && it.opt.length ? `Baris yang berisi ${it.opt.map((t) => '@' + t).join(', ')} otomatis hilang kalau datanya kosong.` : null,
+      short ? null : 'Format WhatsApp: *tebal*, _miring_, ~coret~, ```kode```, dan > kutipan.',
+      it.glob && !short ? '@readmore memotong pesan panjang (muncul "Baca selengkapnya").' : null,
+    ].filter(Boolean);
+
+    const ex = it.ex ? h('details', { class: 'box' }, [
+      h('summary', null, [I('spark'), 'Contoh gaya lain', chevI()]),
+      h('div', { class: 'box-in' }, [h('pre', { text: it.ex }), h('div', null, h('button', { class: 'btn sm', type: 'button', onclick: () => setValue(it.ex, true) }, [I('wand'), 'Pakai contoh ini']))]),
+    ]) : null;
+    const guide = h('details', { class: 'box', open: true }, [
+      h('summary', null, [I('book'), 'Arahan', chevI()]),
+      h('div', { class: 'box-in' }, [h('p', { style: 'margin:0', text: it.desc }), h('ul', null, rules.map((r) => h('li', { text: r })))]),
+    ]);
+    const cur = h('details', { class: 'box' }, [
+      h('summary', null, [I('eye'), `Wording saat ini di bot · ${custom ? 'kustom' : 'bawaan'}`, chevI()]),
+      h('div', { class: 'box-in' }, [
+        h('pre', { text: live || '(kosong)' }),
+        S.state && S.state.updatedAt ? h('p', { class: 'hint', text: `Disalin dari bot ${new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(S.state.updatedAt))} WIB.` }) : null,
+        h('div', { class: 'row' }, [h('button', { class: 'btn sm', type: 'button', onclick: () => setValue(live, true) }, [I('copy'), 'Salin ke editor']), custom && !isProfile(it) ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => setValue(it.def, true) }, 'Lihat bawaan di editor') : null]),
+      ]),
+    ]);
+
+    const st = statusOf(it);
+    const ed = h('section', { class: 'editor', id: 'editor', 'aria-label': `Edit ${it.label}` }, [
+      h('div', { class: 'ed-head' }, [h('div', { class: 'tt' }, [h('h3', null, [it.label, h('span', { class: `chip ${st}`, id: 'ed-chip', text: STATUS_LABEL[st] })]), h('p', { text: it.where })])]),
+      h('div', { class: 'ed-body' }, [
+        h('div', { class: 'ed-left' }, [
+          h('div', { class: 'lbl' }, [h('label', { for: 'ed-ta', text: short ? 'Isi' : 'Wording' }), counter]),
+          ta, probs,
+        ]),
+        h('div', { class: 'ed-more' }, [tags, actions, guide, ex, cur]),
+        h('div', { class: 'ed-right' }, [
+          h('div', { class: 'lbl' }, [h('span', { text: 'Pratinjau WhatsApp' }), pvTabs]),
+          pvWrap,
+          h('p', { class: 'pv-note', text: 'Data di pratinjau hanya contoh. Di bot, kode @… diisi otomatis dengan data asli pembeli.' }),
+        ]),
+      ]),
+    ]);
+    update();
+    return ed;
+  }
+  function previewLive(it) {
+    const saved = S.draft;
+    S.draft = {};
+    try { return previewOf(it, liveText(it)); } finally { S.draft = saved; }
+  }
+  function onEdit(it, v) {
+    if (norm(it, v) === norm(it, liveText(it))) delete S.draft[it.key];
+    else S.draft[it.key] = v;
+    scheduleSave();
+  }
+
+  // ───────────────────────── draf ─────────────────────────
+  function scheduleSave() {
+    S.saveState = 'pending';
+    clearTimeout(S.saveTimer);
+    S.saveTimer = setTimeout(saveDraft, 900);
+    renderDock();
+  }
+  async function saveDraft() {
+    clearTimeout(S.saveTimer); S.saveTimer = null;
+    S.saveState = 'saving'; renderDock();
+    const d = await api('/draft', { tenant: S.botId, values: S.draft });
+    if (d.ok) { S.saveState = 'saved'; S.saveAt = d.savedAt || Date.now(); }
+    else if (d._status !== 401) S.saveState = 'error';
+    renderDock();
+  }
+  function confirmLeave() { return !(S.saveTimer || S.saveState === 'saving') || window.confirm('Draf sedang disimpan. Tetap pindah?'); }
+  window.addEventListener('beforeunload', (e) => { if (S.saveTimer || S.saveState === 'saving') { e.preventDefault(); e.returnValue = ''; } });
+  function discardAll() {
+    const n = Object.keys(S.draft).length;
+    if (!n) { toast('Tidak ada draf.', 'ok'); return; }
+    openModal({ kind: 'confirm', title: 'Buang semua draf?', text: `${n} perubahan yang belum diluncurkan akan dihapus. Wording di bot tidak berubah.`, ok: 'Buang draf', danger: true, onOk: () => { S.draft = {}; S.modal = null; saveDraft(); renderApp(); toast('Semua draf dibuang.'); } });
+  }
+
+  // ───────────────────────── dok luncurkan ─────────────────────────
+  function renderDock() {
+    const slot = $('#dock-slot'); if (!slot) return;
+    const ch = changedItems();
+    const errs = ch.filter((it) => problems(it, editText(it)).errors.length);
+    slot.textContent = '';
+    if (!ch.length && S.saveState !== 'error') return;
+    const save = S.saveState === 'saving' || S.saveState === 'pending' ? 'Menyimpan draf…' : S.saveState === 'error' ? 'Draf gagal disimpan — cek koneksi' : S.saveAt ? `Draf tersimpan · ${new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).format(new Date(S.saveAt))}` : 'Draf tersimpan';
+    slot.appendChild(h('div', { class: 'dock' }, h('div', { class: 'dock-in', role: 'region', 'aria-label': 'Peluncuran' }, [
+      h('div', { class: 'st' }, [
+        h('b', { text: ch.length ? `${ch.length} perubahan belum diluncurkan` : 'Draf belum tersimpan' }),
+        h('small', { class: errs.length || S.saveState === 'error' ? 'bad' : '', text: errs.length ? `${errs.length} perlu diperbaiki dulu · ${save}` : save }),
+      ]),
+      ch.length ? h('button', { class: 'btn ghost sm', type: 'button', onclick: () => openModal({ kind: 'review' }) }, 'Lihat') : null,
+      ch.length ? h('button', { class: 'btn primary', type: 'button', onclick: () => openModal({ kind: 'review' }) }, [I('rocket'), 'Luncurkan']) : h('button', { class: 'btn sm', type: 'button', onclick: saveDraft }, 'Coba simpan lagi'),
+    ])));
+  }
+
+  // ───────────────────────── modal ─────────────────────────
+  function openModal(m) { S.modal = m; renderModal(); }
+  function closeModal() { S.modal = null; const el = $('.modal'); if (el) el.remove(); }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal && S.modal.kind !== 'progress') { closeModal(); } });
+  function renderModal() {
+    const old = $('.modal'); if (old) old.remove();
+    const m = S.modal; if (!m) return;
+    let card;
+    if (m.kind === 'confirm') {
+      card = h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+        h('header', null, [h('h3', { id: 'mt', text: m.title }), h('p', { text: m.text })]),
+        h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: closeModal }, 'Batal'), h('button', { class: `btn ${m.danger ? '' : 'primary'}`, type: 'button', onclick: m.onOk }, m.ok)]),
+      ]);
+    } else if (m.kind === 'review') {
+      const ch = changedItems();
+      const bad = ch.filter((it) => problems(it, editText(it)).errors.length);
+      const glabel = (g) => (S.cat.groups.find((x) => x.id === g) || {}).label || '';
+      card = h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+        h('header', null, [h('h3', { id: 'mt', text: `Luncurkan ${ch.length} perubahan ke bot?` }), h('p', { text: 'Setelah diluncurkan, bot langsung memakai wording baru untuk semua pembeli.' })]),
+        h('div', { class: 'modal-body' }, [
+          !S.hostAlive ? msg('warn', 'Server bot terdeteksi offline. Peluncuran mungkin gagal — coba lagi beberapa menit lagi.') : null,
+          bad.length ? msg('err', `${bad.length} wording perlu diperbaiki dulu sebelum bisa diluncurkan.`) : null,
+          ...ch.map((it) => {
+            const pr = problems(it, editText(it));
+            const c = changeOf(it);
+            return h('div', { class: `chg${pr.errors.length ? ' bad' : ''}` }, [
+              h('div', { class: 't' }, [h('b', { text: it.label }), h('small', { text: pr.errors.length ? pr.errors[0] : c === null ? `${glabel(it.g)} · kembali ke bawaan` : `${glabel(it.g)} · wording baru` })]),
+              h('button', { class: 'btn sm ghost', type: 'button', onclick: () => { closeModal(); S.group = it.g; S.q = ''; S.sel = it.key; renderApp(); const ed = $('#editor'); if (ed) ed.scrollIntoView({ behavior: 'smooth' }); } }, pr.errors.length ? 'Perbaiki' : 'Lihat'),
+              h('button', { class: 'btn sm ghost', type: 'button', 'aria-label': `Batalkan perubahan ${it.label}`, title: 'Batalkan perubahan ini', onclick: () => { delete S.draft[it.key]; scheduleSave(); if (!changedItems().length) closeModal(); else renderModal(); refreshMain(); } }, I('x')),
+            ]);
+          }),
+        ]),
+        h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: closeModal }, 'Nanti dulu'), h('button', { class: 'btn primary', type: 'button', disabled: bad.length || !ch.length ? true : null, onclick: publish }, [I('rocket'), 'Luncurkan sekarang'])]),
+      ]);
+    } else if (m.kind === 'progress') {
+      const step = (i, label) => h('div', { class: m.step > i ? 'done' : m.step === i ? 'on' : '' }, [h('span', { class: 'ck' }, m.step > i ? I('check') : null), label]);
+      card = h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt', 'aria-busy': String(m.step < 3) }, [
+        h('header', null, [h('h3', { id: 'mt', text: m.step >= 3 ? 'Berhasil diluncurkan' : m.error ? 'Peluncuran gagal' : 'Meluncurkan…' })]),
+        h('div', { class: 'modal-body' }, m.step >= 3
+          ? [h('div', { class: 'big-ok' }, [h('span', { class: 'c' }, I('check')), h('b', { text: `${m.count} pengaturan sudah aktif di bot` }), h('p', { class: 'hint', text: 'Coba ketik menu atau cekml ke bot kamu untuk melihat hasilnya. Notifikasi juga dikirim ke WhatsApp owner.' })])]
+          : [h('div', { class: 'prog' }, [step(0, 'Mengirim perubahan ke server'), step(1, 'Bot menerapkan perubahan'), step(2, 'Menyimpan & menyelesaikan')]), m.error ? msg('err', m.error) : null]),
+        h('footer', null, m.step >= 3 || m.error ? [m.error ? h('button', { class: 'btn', type: 'button', onclick: () => openModal({ kind: 'review' }) }, 'Kembali') : null, h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Selesai')] : [h('span', { class: 'hint', text: 'Jangan tutup halaman ini…' })]),
+      ]);
+    }
+    const ov = h('div', { class: 'modal', onclick: (e) => { if (e.target === ov && m.kind !== 'progress') closeModal(); } }, card);
+    document.body.appendChild(ov);
+    const f = card.querySelector('footer .btn.primary:not([disabled])') || card.querySelector('button');
+    if (f) f.focus();
+  }
+
+  async function publish() {
+    const ch = changedItems();
+    const changes = {};
+    for (const it of ch) { const c = changeOf(it); changes[it.key] = c === null ? null : cleanText(it, c); }
+    openModal({ kind: 'progress', step: 0, count: ch.length });
+    if (S.saveTimer || S.saveState === 'saving') await saveDraft();
+    const d = await api('/publish', { tenant: S.botId, changes });
+    if (!d.ok) { S.modal.error = d.error || 'Gagal mengirim.'; renderModal(); return; }
+    S.modal.step = 1; renderModal();
+    const started = Date.now();
+    let st = null;
+    while (Date.now() - started < 90000) {
+      await new Promise((r) => setTimeout(r, 1800));
+      st = await api(`/publish?tenant=${encodeURIComponent(S.botId)}&id=${encodeURIComponent(d.id)}`);
+      if (!st.ok && st._status === 401) return;
+      if (st.ok && (st.status === 'done' || st.status === 'error')) break;
+    }
+    if (!st || !st.ok || st.status !== 'done') {
+      S.modal.error = st && st.ok && st.status === 'error' ? `Bot menolak perubahan: ${st.error}` : 'Server bot belum merespons. Draf kamu aman — cek lagi beberapa saat, lalu luncurkan ulang bila perlu.';
+      renderModal(); return;
+    }
+    S.modal.step = 2; renderModal();
+    // terapkan ke salinan lokal "wording saat ini", lalu hapus dari draf
+    S.state = S.state || { values: {}, profile: { custom: [] }, updatedAt: 0 };
+    S.state.values = S.state.values || {}; S.state.profile = S.state.profile || { custom: [] }; S.state.profile.custom = S.state.profile.custom || [];
+    for (const [k, v] of Object.entries(changes)) {
+      const it = S.byKey[k];
+      if (isProfile(it)) {
+        const cs = new Set(S.state.profile.custom);
+        if (v === null) { cs.delete(k); } else { cs.add(k); S.state.profile[k] = v; }
+        S.state.profile.custom = [...cs];
+      } else if (v === null) delete S.state.values[k]; else S.state.values[k] = v;
+      delete S.draft[k];
+    }
+    S.state.updatedAt = Date.now();
+    await saveDraft();
+    S.modal.step = 3; renderModal();
+    renderApp();
+    setTimeout(async () => {   // salinan resmi dari bot (nilai yang sudah dirapikan bot)
+      const r = await api(`/data?tenant=${encodeURIComponent(S.botId)}`, null, { quiet: true });
+      if (r.ok && r.state && r.state.updatedAt >= S.state.updatedAt - 5000) { S.state = r.state; if (!S.modal) refreshMain(); }
+    }, 4000);
+  }
+
+  async function logout() { await api('/logout', {}, { quiet: true }); S.menu = false; toLogin('Kamu sudah keluar.'); }
+  function logoutAll() {
+    S.menu = false;
+    openModal({ kind: 'confirm', title: 'Keluar dari semua perangkat?', text: 'Semua sesi login portal untuk nomor ini (HP, laptop, dll.) akan diakhiri. Pakai ini kalau kamu curiga ada orang lain yang masuk.', ok: 'Keluar semua', danger: true, onOk: async () => { closeModal(); const d = await api('/logout-all', {}, { quiet: true }); toLogin(d.ok ? `Berhasil keluar dari ${d.count || 1} perangkat.` : 'Kamu sudah keluar.'); } });
+  }
+
+  // ───────────────────────── mulai ─────────────────────────
+  async function boot() {
+    if (/\.github\.io$/i.test(location.hostname)) { location.replace(PAGES_URL); return; }
+    const c = await api('/config', null, { quiet: true });
+    if (c._bad || c._status === 404 || c._status === 405) return renderFatal('Halaman Kelola Bot hanya bisa dibuka di alamat resmi: baramarket.pages.dev/portal');
+    if (c._status === 0) return renderFatal(c.error);
+    if (!c.ready) return renderFatal('Portal belum diaktifkan oleh admin Baramarket. Coba lagi nanti.');
+    const me = await api('/me', null, { quiet: true });
+    S.booted = true;
+    if (me.ok) { S.me = me; const last = ls.get(LS_BOT); return me.bots.some((b) => b.id === last) ? selectBot(last) : loadMe(); }
+    renderPhone();
+  }
+  boot();
+})();
