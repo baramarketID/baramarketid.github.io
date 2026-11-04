@@ -301,7 +301,7 @@ details.box>summary svg.i{color:var(--accent)}
 
 /* ───────── dashboard ───────── */
 .gsep{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:12px 10px 4px}
-.dsec{display:flex;flex-direction:column;gap:10px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);animation:rise .3s both}
+.dsec{display:flex;flex-direction:column;gap:10px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface)}
 .dsec>.row{gap:10px}
 .dh{margin:0;font-family:var(--font-display);font-size:1rem;letter-spacing:-.01em}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
@@ -341,3 +341,13 @@ details.box>summary svg.i{color:var(--accent)}
 .qris-wrap .msg{margin:0}
 .input.bad{border-color:var(--bad)}
 @media (max-width:860px){ .gsep{display:none} .dsec{padding:14px} }
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--bg2)}
+.setrow .tx{display:flex;flex-direction:column;min-width:0}
+.setrow .tx b{font-size:.92rem}
+.setrow .tx small{font-size:.8rem;color:var(--muted)}
+.slink.wa:hover{border-color:#25D366;background:rgba(37,211,102,.1)}
+.slink.wa .gi{background:rgba(37,211,102,.14);color:#25D366}
+.side-link{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:.84rem;font-weight:600}
+.side-link:hover{background:var(--surface);color:#25D366}
+.side-link svg{width:16px;height:16px}
+@media (max-width:860px){ .side-link{display:none} }
