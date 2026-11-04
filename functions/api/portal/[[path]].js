@@ -10,6 +10,11 @@
 //   DASHBOARD: POST /api/portal/dashboard {tenant, force}      → perintah ke host, lalu GET /api/portal/cmd?tenant=&id=
 //              POST /api/portal/depoweb {tenant, nominal}      → QRIS deposit saldo web Baramarket (lewat host)
 //              POST /api/portal/depoweb-cancel {tenant, ref}    · GET /api/portal/depo?tenant=&ref= (status pembayaran)
+//              POST /api/portal/setting {tenant, key:'orderMode', value:'grup'|'semua'}  → mode order
+//   TOKO:      POST /api/portal/call {tenant, fn, args}  → profit / user / riwayat / banner / PPOB / rekap harian (daftar putih CALLS)
+//   BOT:       POST /api/portal/pair {tenant, botNumber} · POST /api/portal/disconnect {tenant}  (status lewat /cmd)
+//   SEWA:      POST /api/portal/renew {tenant, email, botPhone?} → web_orders (diproses bot Telegram) · GET /api/portal/renew?tenant=&id=
+//   PORTAL_RESERVED_NUMBERS (opsional, Cloudflare): nomor yang tidak boleh dipakai jadi bot (nomor admin), pisahkan koma
 //   GET /api/portal/me · POST /api/portal/logout · POST /api/portal/logout-all · GET /api/portal/config
 //
 // Browser TIDAK pernah menyentuh Firestore langsung: semua lewat fungsi ini dengan service account (rahasia Cloudflare).
@@ -33,6 +38,9 @@ const OTP_MAX_TRIES = 5;
 const OTP_LOCK_MS = 15 * 60 * 1000;
 const HOST_ALIVE_MS = 2 * 60 * 1000;
 const MAX_BODY = 200 * 1024;
+const MAX_BODY_BANNER = 1000 * 1024;   // unggah banner (base64 maks ±950 KB)
+const ROLES = ['basic', 'gold', 'platinum', 'owner'];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOUR = 60 * 60 * 1000;
 const enc = new TextEncoder();
 
@@ -228,11 +236,11 @@ function sameOrigin(req) {
   if (o) { try { return new URL(o).host === new URL(req.url).host; } catch (e) { return false; } }
   return req.headers.get('sec-fetch-site') === 'same-origin';
 }
-async function body(req) {
+async function body(req, max = MAX_BODY) {
   const len = Number(req.headers.get('content-length') || 0);
-  if (len > MAX_BODY) throw Object.assign(new Error('Isi terlalu besar.'), { status: 413 });
+  if (len > max) throw Object.assign(new Error('Isi terlalu besar.'), { status: 413 });
   const t = await req.text();
-  if (t.length > MAX_BODY) throw Object.assign(new Error('Isi terlalu besar.'), { status: 413 });
+  if (t.length > max) throw Object.assign(new Error('Isi terlalu besar.'), { status: 413 });
   try { return JSON.parse(t || '{}'); } catch (e) { throw Object.assign(new Error('Data rusak. Muat ulang halaman.'), { status: 400 }); }
 }
 const ipOf = (req) => req.headers.get('cf-connecting-ip') || (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
@@ -343,18 +351,30 @@ async function routeVerify(fs, env, req) {
   return json({ ok: true }, 200, { 'set-cookie': setCookie(sid, SESSION_MS / 1000) });
 }
 
+async function pricingOf(fs) {
+  const p = await fs.get('settings/pricing').catch(() => null);
+  const pk = p && Array.isArray(p.packages) && p.packages[0];
+  const price = Number(pk ? pk.price : p && p.price) || 0, days = Number(pk ? pk.days : p && p.periodDays) || 0;
+  return price && days ? { price, days, note: (pk && pk.note) || '' } : null;
+}
 async function routeMe(fs, s) {
   const ids = (s.tenants || []).slice(0, 10);
-  const [docs, states, alive] = await Promise.all([fs.getMany(ids.map((id) => `tenants/${id}`)), fs.getMany(ids.map((id) => `portal_state/${id}`)), hostAlive(fs)]);
+  const [docs, states, alive, notice, pricing] = await Promise.all([
+    fs.getMany(ids.map((id) => `tenants/${id}`)), fs.getMany(ids.map((id) => `portal_state/${id}`)), hostAlive(fs),
+    fs.get('portal_meta/notice').catch(() => null), pricingOf(fs),
+  ]);
   const bots = ids.map((id, i) => {
     const d = docs[i]; if (!d || d.blocked) return null;
     const st = states[i] || {};
     return {
       id, storeName: (st.profile && st.profile.storeName) || d.storeName || '', botNumber: d.displayBotNumber || d.botNumber || '',
       status: d.status || '', expiredAt: Number(d.expiredAt) || 0, connection: d.connection || '', synced: Boolean(states[i]),
+      realBot: d.botNumber || '', pendingBot: d.pendingBot || '', trial: Boolean(d.trial),
+      email: String((d.webProfile && d.webProfile.email) || '').slice(0, 120),   // isian awal form perpanjang (data milik penyewa sendiri)
     };
   }).filter(Boolean);
-  return json({ ok: true, phone: maskPhone(s.phone), bots, hostAlive: alive, exp: s.exp });
+  const nt = notice && notice.text ? { text: String(notice.text).slice(0, 600), level: notice.level === 'warn' ? 'warn' : 'info', at: Number(notice.at) || 0 } : null;
+  return json({ ok: true, phone: maskPhone(s.phone), bots, hostAlive: alive, exp: s.exp, notice: nt, pricing });
 }
 
 function ownsTenant(s, id) { return typeof id === 'string' && (s.tenants || []).includes(id); }
@@ -376,7 +396,7 @@ async function routeDraft(fs, s, req) {
   if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
   const cat = await catalog(fs);
   if (!cat) return fail(503, 'Data pengaturan belum tersedia.');
-  const by = Object.fromEntries(cat.items.map((i) => [i.key, i]));
+  const by = Object.assign(Object.create(null), Object.fromEntries(cat.items.map((i) => [i.key, i])));   // tanpa prototipe: kunci "constructor" dll. tidak lolos
   const v = b.values && typeof b.values === 'object' && !Array.isArray(b.values) ? b.values : null;
   if (!v) return fail(400, 'Format draf tidak dikenal.');
   const out = {};
@@ -397,7 +417,7 @@ async function routePublish(fs, s, req) {
   if (!(await allow(fs, `pub_${b.tenant}`, 20, HOUR))) return fail(429, 'Terlalu sering meluncurkan. Coba lagi beberapa menit lagi.');
   const cat = await catalog(fs);
   if (!cat) return fail(503, 'Data pengaturan belum tersedia.');
-  const by = Object.fromEntries(cat.items.map((i) => [i.key, i]));
+  const by = Object.assign(Object.create(null), Object.fromEntries(cat.items.map((i) => [i.key, i])));   // tanpa prototipe: kunci "constructor" dll. tidak lolos
   const ch = b.changes && typeof b.changes === 'object' && !Array.isArray(b.changes) ? b.changes : null;
   if (!ch || !Object.keys(ch).length) return fail(400, 'Belum ada perubahan untuk diluncurkan.');
   const clean = {};
@@ -430,10 +450,10 @@ async function routePublishStatus(fs, s, url) {
 }
 
 /** Perintah portal ke host (dashboard / deposit). Hasil diambil lewat GET /cmd. */
-async function hostCommand(fs, s, tenant, type, payload) {
+async function hostCommand(fs, s, tenant, type, payload, notifyText) {
   if (!(await hostAlive(fs))) return fail(503, 'Server bot sedang offline atau restart. Coba lagi beberapa menit lagi.');
   const id = randomId(20);
-  await fs.set(`host_commands/${id}`, { type, phone: tenant, payload, status: 'pending', createdAt: Date.now(), src: 'portal', by: s.phone }, { mustNotExist: true });
+  await fs.set(`host_commands/${id}`, { type, phone: tenant, payload, status: 'pending', createdAt: Date.now(), src: 'portal', by: s.phone, ...(notifyText ? { notifyText } : {}) }, { mustNotExist: true });
   return json({ ok: true, id });
 }
 async function routeDashboard(fs, s, req) {
@@ -457,15 +477,31 @@ async function routeDepoCancel(fs, s, req) {
   if (!/^[A-Za-z0-9_-]{4,80}$/.test(String(b.ref || ''))) return fail(400, 'Ref deposit tidak valid.');
   return hostCommand(fs, s, b.tenant, 'portal_depoweb_cancel', { ref: String(b.ref) });
 }
+async function routeSetting(fs, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (b.key !== 'orderMode' || !['grup', 'semua'].includes(b.value)) return fail(400, 'Pengaturan tidak dikenal.');
+  if (!(await allow(fs, `set_${b.tenant}`, 30, HOUR))) return fail(429, 'Terlalu sering mengubah pengaturan. Coba lagi nanti.');
+  const r = await hostCommand(fs, s, b.tenant, 'portal_setorder', { mode: b.value });
+  if (r.status === 200) await outbox(fs, s.phone, `⚙️ *Pengaturan bot diubah dari website*\n\nMode order: *${b.value === 'grup' ? 'hanya di grup' : 'grup & chat pribadi'}*\n🕐 ${wib(Date.now())}\n\n_Bukan kamu? Buka Kelola Bot Topup → Keluar dari semua perangkat, lalu hubungi admin Baramarket._`).catch(() => {});
+  return r;
+}
 async function routeCmd(fs, s, url) {
   const tenant = url.searchParams.get('tenant') || '';
   const id = url.searchParams.get('id') || '';
   if (!ownsTenant(s, tenant)) return fail(403, 'Bot ini bukan milikmu.');
   if (!/^[A-Za-z0-9]{20}$/.test(id)) return fail(400, 'ID tidak valid.');
   const c = await fs.get(`host_commands/${id}`);
-  if (!c || c.phone !== tenant || c.src !== 'portal' || !/^portal_(dashboard|depoweb|depoweb_cancel)$/.test(String(c.type))) return fail(404, 'Tidak ditemukan.');
-  if (c.status === 'done' || c.status === 'error') await fs.del(`host_commands/${id}`).catch(() => {});   // sekali baca, lalu dibersihkan
-  return json({ ok: true, status: c.status, error: c.status === 'error' ? String(c.error || 'Gagal') : '', result: c.status === 'done' ? c.result || null : null });
+  if (!c || c.phone !== tenant || c.src !== 'portal' || !/^(portal_(dashboard|depoweb|depoweb_cancel|setorder|call)|pair|disconnect)$/.test(String(c.type))) return fail(404, 'Tidak ditemukan.');
+  if (c.status === 'done' || c.status === 'error') {
+    await fs.del(`host_commands/${id}`).catch(() => {});   // sekali baca, lalu dibersihkan
+    if (c.status === 'done' && c.notifyText) await outbox(fs, s.phone, `${c.notifyText}\n🕐 ${wib(Date.now())}\n\n_Bukan kamu? Buka Kelola Bot Topup → Keluar dari semua perangkat, lalu hubungi admin Baramarket._`).catch(() => {});
+  }
+  return json({ ok: true, status: c.status, code: c.status === 'code' ? String(c.code || '') : '', error: c.status === 'error' ? String(c.error || 'Gagal') : '', result: c.status === 'done' ? resultOf(c) : null });
+}
+function resultOf(c) {
+  if (typeof c.resultJson === 'string') { try { return JSON.parse(c.resultJson); } catch (e) { return null; } }
+  return c.result || null;
 }
 async function routeDepoStatus(fs, s, url) {
   const tenant = url.searchParams.get('tenant') || '';
@@ -476,6 +512,113 @@ async function routeDepoStatus(fs, s, url) {
   if (!d || d.tenant !== tenant) return json({ ok: true, status: 'Menunggu Bayar' });
   const pick = ['status', 'nominal', 'total', 'expireAt', 'saldoSebelum', 'saldoSesudah', 'kredit', 'message', 'updatedAt'];
   return json({ ok: true, ...Object.fromEntries(pick.filter((k) => d[k] !== undefined).map((k) => [k, d[k]])) });
+}
+
+
+// ───────────────────────── aksi bot (profit, user, riwayat, banner, PPOB, rekap harian) ─────────────────────────
+const isNomor = (v) => /^\d{8,16}$/.test(String(v || ''));
+const rp = (n) => `Rp ${Math.round(Number(n) || 0).toLocaleString('id-ID')}`;
+/** Daftar putih aksi: validasi argumen + jenis (baca/tulis) + kabar WA untuk aksi penting. */
+const CALLS = {
+  'profit.get': { w: false, v: () => ({}) },
+  'profit.set': { w: true, v: (a) => {
+    if (!['game', 'digi', 'oke'].includes(a.kind)) return null;
+    if (!a.percent || typeof a.percent !== 'object' || Array.isArray(a.percent)) return null;
+    const percent = {};
+    for (const [r, x] of Object.entries(a.percent)) { const n = Number(x); if (!ROLES.includes(r) || !Number.isFinite(n) || n < 0 || n > 100 || Math.round(n * 100) !== n * 100) return null; percent[r] = n; }
+    if (!Object.keys(percent).length) return null;
+    return { kind: a.kind, percent };
+  }, note: (a) => `📈 *Profit ${a.kind === 'digi' ? 'Layanan Lainnya' : a.kind === 'oke' ? 'PPOB' : 'topup game'} diubah dari website*\n\n${Object.entries(a.percent).map(([r, n]) => `› ${r}: ${n}%`).join('\n')}` },
+  'users.list': { w: false, v: () => ({}) },
+  'users.setRole': { w: true, v: (a) => (isNomor(a.nomor) && ROLES.includes(a.role) ? { nomor: String(a.nomor), role: a.role } : null),
+    note: (a) => `👤 *Role user diubah dari website*\n\n› ${a.nomor} → *${a.role}*${a.role === 'owner' ? '\n⚠️ Role owner bisa memakai perintah owner bot.' : ''}` },
+  'users.adjust': { w: true, v: (a) => { const d = Number(a.delta); return isNomor(a.nomor) && Number.isInteger(d) && d !== 0 && Math.abs(d) <= 10000000 ? { nomor: String(a.nomor), delta: d } : null; },
+    note: (a) => `💰 *Saldo user ${a.delta > 0 ? 'ditambah' : 'dikurangi'} dari website*\n\n› User   : ${a.nomor}\n› Nominal: ${a.delta > 0 ? '+' : '−'}${rp(Math.abs(a.delta))}` },
+  'history.recent': { w: false, v: (a) => (['trx', 'depo'].includes(a.kind) ? { kind: a.kind } : null) },
+  'banner.get': { w: false, v: () => ({}) },
+  'banner.set': { w: true, big: true, v: (a) => { const d = String(a.data || ''); return /^[A-Za-z0-9+/=]{200,950000}$/.test(d) ? { data: d } : null; }, note: () => '🖼️ *Banner toko diganti dari website*' },
+  'banner.remove': { w: true, v: () => ({}), note: () => '🖼️ *Banner toko dihapus dari website*' },
+  'ppob.tree': { w: false, v: () => ({}) },
+  'ppob.set': { w: true, v: (a) => (['cats', 'brands', 'prods'].includes(a.kind) && typeof a.key === 'string' && a.key.length >= 1 && a.key.length <= 160 && typeof a.hidden === 'boolean' ? { kind: a.kind, key: a.key, hidden: a.hidden } : null) },
+  'ppob.reset': { w: true, v: () => ({}), note: () => '🙈 *Semua produk PPOB ditampilkan lagi (dari website)*' },
+  'prefs.setRekap': { w: true, v: (a) => (typeof a.on === 'boolean' ? { on: a.on } : null), note: (a) => `🧾 *Rekap harian otomatis ${a.on ? 'dinyalakan' : 'dimatikan'} dari website*` },
+};
+async function routeCall(fs, s, req) {
+  const b = await body(req, MAX_BODY_BANNER);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  const spec = typeof b.fn === 'string' && Object.hasOwn(CALLS, b.fn) ? CALLS[b.fn] : null;
+  if (!spec) return fail(400, 'Aksi tidak dikenal.');
+  if (!spec.big && JSON.stringify(b.args || {}).length > 20000) return fail(413, 'Isi terlalu besar.');
+  const args = spec.v(b.args && typeof b.args === 'object' && !Array.isArray(b.args) ? b.args : {});
+  if (!args) return fail(400, 'Data tidak valid. Muat ulang halaman lalu coba lagi.');
+  if (!(await allow(fs, `${spec.w ? 'cw' : 'cr'}_${b.tenant}`, spec.w ? 150 : 400, HOUR))) return fail(429, 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.');
+  return hostCommand(fs, s, b.tenant, 'portal_call', { fn: b.fn, args }, spec.note ? spec.note(args) : '');
+}
+
+// ───────────────────────── bot: pairing / putuskan ─────────────────────────
+async function routePair(fs, env, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  const num = normPhone(b.botNumber);
+  if (!okPhone(num)) return fail(400, 'Nomor bot tidak valid. Contoh: 081234567890');
+  const t = await fs.get(`tenants/${b.tenant}`);
+  if (!t) return fail(404, 'Penyewa tidak ditemukan.');
+  if (t.blocked) return fail(403, 'Akun kamu diblokir. Hubungi admin.');
+  if (!(Number(t.expiredAt) > Date.now())) return fail(400, 'Masa sewa sudah habis. Perpanjang dulu.');
+  if (t.botNumber) return fail(400, `Bot sudah tersambung ke ${t.botNumber}. Putuskan dulu kalau mau ganti nomor.`);
+  const reserved = [b.tenant, t.ownerNumber, ...String(env.PORTAL_RESERVED_NUMBERS || '').split(/[\s,]+/)].map(normPhone).filter(Boolean);
+  if (reserved.includes(num)) return fail(400, 'Nomor itu tidak bisa dipakai sebagai bot topup. Pakai nomor WhatsApp lain (bukan nomor owner).');
+  const dup = await fs.where('tenants', 'botNumber', num, 5).catch(() => []);
+  if (dup.some((x) => x.id !== b.tenant)) return fail(400, 'Nomor itu sudah dipakai penyewa lain.');
+  if (t.trial) {
+    const tr = await fs.get(`trials/bot_${num}`).catch(() => null);
+    if (tr && tr.phone && String(tr.phone) !== b.tenant) return fail(400, 'Nomor bot itu sudah pernah dipakai untuk coba gratis. Pakai nomor lain.');
+    await fs.set(`trials/bot_${num}`, { phone: b.tenant, at: Date.now() }, { merge: true }).catch(() => {});
+  }
+  if (!(await allow(fs, `pair_${b.tenant}`, 8, HOUR))) return fail(429, 'Terlalu sering minta kode pairing. Coba lagi nanti.');
+  return hostCommand(fs, s, b.tenant, 'pair', { botNumber: num }, `🔗 *Pairing bot diminta dari website*\n\n› Nomor bot: ${num}`);
+}
+async function routeDisconnect(fs, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (!(await allow(fs, `disc_${b.tenant}`, 6, HOUR))) return fail(429, 'Terlalu sering. Coba lagi nanti.');
+  return hostCommand(fs, s, b.tenant, 'disconnect', {}, '🔌 *Nomor bot diputus dari website*\n\nData user, saldo & pengaturan tetap tersimpan. Pairing ulang lewat website atau ketik *pairingtopup* di WA Baramarket.');
+}
+
+// ───────────────────────── perpanjang sewa (diproses bot Telegram Baramarket, sama dengan #sewa) ─────────────────────────
+async function routeRenew(fs, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  const email = String(b.email || '').trim().toLowerCase().slice(0, 120);
+  if (!EMAIL_RE.test(email)) return fail(400, 'Format email tidak valid.');
+  const [t, st] = await Promise.all([fs.get(`tenants/${b.tenant}`), fs.get(`portal_state/${b.tenant}`)]);
+  if (!t) return fail(404, 'Penyewa tidak ditemukan.');
+  if (t.blocked) return fail(403, 'Akun kamu diblokir. Hubungi admin.');
+  let botPhone = t.botNumber || '';
+  if (!botPhone) {
+    botPhone = normPhone(b.botPhone);
+    if (!okPhone(botPhone)) return fail(400, 'Bot belum tersambung — isi nomor WhatsApp yang akan dipakai sebagai bot.');
+    if (botPhone === b.tenant || botPhone === normPhone(t.ownerNumber)) return fail(400, 'Nomor bot harus berbeda dengan nomor owner.');
+  }
+  if (!(await allow(fs, `renew_${b.tenant}`, 8, HOUR))) return fail(429, 'Terlalu sering membuat tagihan. Coba lagi nanti.');
+  const prof = (st && st.profile) || {}, wp = t.webProfile || {};
+  const name = (v, d) => { const x = String(v || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 60); return x.length >= 2 ? x : d; };
+  const id = randomId(20);
+  await fs.set(`web_orders/${id}`, {
+    email, storeName: name(prof.storeName || wp.storeName, 'Toko Topup'), ownerName: name(prof.ownerName || wp.ownerName, 'Owner'),
+    ownerPhone: b.tenant, botName: name(prof.botName || wp.botName, 'Bot Topup'), botPhone, status: 'new', src: 'portal', createdAt: Date.now(),
+  }, { mustNotExist: true });
+  return json({ ok: true, id });
+}
+async function routeRenewStatus(fs, s, url) {
+  const tenant = url.searchParams.get('tenant') || '';
+  const id = url.searchParams.get('id') || '';
+  if (!ownsTenant(s, tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (!/^[A-Za-z0-9]{20}$/.test(id)) return fail(400, 'ID tidak valid.');
+  const d = await fs.get(`web_orders/${id}`);
+  if (!d || d.ownerPhone !== tenant || d.src !== 'portal') return fail(404, 'Tagihan tidak ditemukan.');
+  const qr = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(String(d.qr || '')) ? d.qr : '';
+  return json({ ok: true, status: d.status || 'new', message: String(d.message || d.error || ''), qr, total: Number(d.total) || 0, price: Number(d.price) || 0, days: Number(d.periodDays) || 0, expireAt: Number(d.expireAt) || 0, expiredAt: Number(d.expiredAt) || 0, pairCode: String(d.pairCode || ''), renewing: Boolean(d.renewing) });
 }
 
 async function routeLogoutAll(fs, s) {
@@ -514,6 +657,12 @@ export async function onRequest(context) {
     if (route === 'dashboard' && req.method === 'POST') return await routeDashboard(fs, s, req);
     if (route === 'depoweb' && req.method === 'POST') return await routeDepoWeb(fs, s, req);
     if (route === 'depoweb-cancel' && req.method === 'POST') return await routeDepoCancel(fs, s, req);
+    if (route === 'setting' && req.method === 'POST') return await routeSetting(fs, s, req);
+    if (route === 'call' && req.method === 'POST') return await routeCall(fs, s, req);
+    if (route === 'pair' && req.method === 'POST') return await routePair(fs, env, s, req);
+    if (route === 'disconnect' && req.method === 'POST') return await routeDisconnect(fs, s, req);
+    if (route === 'renew' && req.method === 'POST') return await routeRenew(fs, s, req);
+    if (route === 'renew' && req.method === 'GET') return await routeRenewStatus(fs, s, url);
     if (route === 'cmd' && req.method === 'GET') return await routeCmd(fs, s, url);
     if (route === 'depo' && req.method === 'GET') return await routeDepoStatus(fs, s, url);
     return fail(404, 'Tidak ditemukan.');
