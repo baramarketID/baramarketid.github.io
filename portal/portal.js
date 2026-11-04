@@ -363,8 +363,17 @@
   function brand(sub) {
     return h('div', { class: 'brand' }, [h('span', { class: 'mark', icon: 'bot' }), h('div', { class: 'tx' }, [h('b', { text: 'Kelola Bot Topup' }), h('span', { text: sub || 'BARAMARKET.ID' })])]);
   }
+  /** Tombol kembali ke website Baramarket. Kalau datang dari website, kembali ke halaman sebelumnya (mis. #sewa). */
+  const HOME_URL = '/';
+  function backLink(cls) {
+    return h('a', { class: `back${cls ? ' ' + cls : ''}`, href: HOME_URL, 'aria-label': 'Kembali ke website Baramarket', onclick: (e) => {
+      if (S.modal && S.modal.kind === 'progress') { e.preventDefault(); return; }   // draf belum tersimpan → dicegah beforeunload
+      let same = false; try { same = Boolean(document.referrer) && new URL(document.referrer).origin === location.origin && !/\/portal\/?/.test(new URL(document.referrer).pathname); } catch (er) { same = false; }
+      if (same && history.length > 1) { e.preventDefault(); history.back(); }
+    } }, [I('back'), h('span', { text: 'Kembali' })]);
+  }
   function authShell(step, kids) {
-    return h('main', { class: 'auth' }, h('div', { class: 'auth-card' }, [brand(), h('div', { class: 'steps', 'aria-hidden': 'true' }, [1, 2, 3].map((i) => h('i', { class: i <= step ? 'on' : '' }))), kids]));
+    return h('main', { class: 'auth' }, h('div', { class: 'auth-card' }, [backLink('in-card'), brand(), h('div', { class: 'steps', 'aria-hidden': 'true' }, [1, 2, 3].map((i) => h('i', { class: i <= step ? 'on' : '' }))), kids]));
   }
   function toLogin(note) {
     S.me = null; S.botId = ''; S.cat = null; S.modal = null;
@@ -490,7 +499,7 @@
     ])));
   }
   function renderFatal(text, withLogout) {
-    mount(h('main', { class: 'auth' }, h('div', { class: 'auth-card' }, [brand(), msg('err', text || 'Terjadi kesalahan.'),
+    mount(h('main', { class: 'auth' }, h('div', { class: 'auth-card' }, [backLink('in-card'), brand(), msg('err', text || 'Terjadi kesalahan.'),
       h('div', { class: 'row' }, [h('button', { class: 'btn', type: 'button', onclick: () => location.reload() }, 'Muat ulang'), withLogout ? h('button', { class: 'btn ghost', type: 'button', onclick: logout }, 'Keluar') : null])])));
   }
 
@@ -552,7 +561,7 @@
       h('button', { type: 'button', role: 'menuitem', class: 'danger', onclick: logoutAll }, [I('lock'), 'Keluar dari semua perangkat']),
     ]);
     const more = h('button', { class: 'btn ghost sm', type: 'button', 'aria-label': 'Menu akun', 'aria-expanded': String(S.menu), onclick: (e) => { e.stopPropagation(); S.menu = !S.menu; pop.hidden = !S.menu; more.setAttribute('aria-expanded', String(S.menu)); } }, I('more'));
-    return h('header', { class: 'top' }, h('div', { class: 'top-in' }, [brand(), h('div', { class: 'botsel' }, [chip, h('div', { class: 'menu' }, [more, pop])])]));
+    return h('header', { class: 'top' }, h('div', { class: 'top-in' }, [backLink('in-top'), brand(), h('div', { class: 'botsel' }, [chip, h('div', { class: 'menu' }, [more, pop])])]));
   }
   document.addEventListener('click', (e) => { if (S.menu && !e.target.closest('.menu')) { S.menu = false; const p = $('.menu-pop'); if (p) p.hidden = true; } });
 
