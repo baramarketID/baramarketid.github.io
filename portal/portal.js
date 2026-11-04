@@ -721,7 +721,7 @@
     out.push(h('section', { class: 'dsec' }, [
       h('h3', { class: 'dh', text: 'Google Sheet' }),
       sh.enabled && /^https:\/\/docs\.google\.com\//.test(sh.url || '')
-        ? h('div', { class: 'dgrid two' }, [link(sh.omset || sh.url, 'Rekap Omset & Profit', 'Omset, modal & profit harian · mingguan · bulanan'), link(sh.bayar || sh.url, 'Rekap Pembayaran & Status Pencairan', 'Pembayaran QRIS + kolom Status Dicairkan')])
+        ? h('div', { class: 'dgrid two' }, [link(sh.url, 'Buka Google Sheet Rekap', 'Omset & profit, pembayaran QRIS, status pencairan, data transaksi & user')])
         : msg('info', 'Google Sheet rekap belum dipasang untuk bot ini. Hubungi admin Baramarket untuk memasangnya.'),
     ]));
     if (d.bot && !d.bot.running) out.push(msg('warn', 'Bot kamu sedang tidak tersambung ke WhatsApp. Saldo & rekap tetap tampil, tapi deposit dari website butuh bot yang aktif.'));
