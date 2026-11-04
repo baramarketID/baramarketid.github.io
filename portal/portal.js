@@ -6,6 +6,7 @@
   const API = '/api/portal';
   const MAIN_BOT = '0812-6642-6608';               // nomor bot topup utama Baramarket (pengirim kode OTP)
   const PAGES_URL = 'https://baramarket.pages.dev/portal/';
+  const GROUP_URL = 'https://chat.whatsapp.com/DL37Hg46ecsGfXAF4qsaTl';   // grup diskusi penyewa bot topup
   const READMORE = '‎'.repeat(4001);
   const LS_PHONE = 'bmp-phone', LS_BOT = 'bmp-bot';
 
@@ -46,6 +47,7 @@
     ext: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     qr: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    chat: '<path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/>',
   };
   const icon = (n, cls) => `<svg class="i${cls ? ' ' + cls : ''}" viewBox="0 0 24 24" aria-hidden="true">${P[n] || ''}</svg>`;
 
@@ -535,6 +537,7 @@
     const pop = h('div', { class: 'menu-pop', role: 'menu', hidden: !S.menu }, [
       h('div', { class: 'who', text: `Masuk sebagai ${S.me.phone}` }),
       S.me.bots.length > 1 ? h('button', { type: 'button', role: 'menuitem', onclick: () => { S.menu = false; if (confirmLeave()) renderPicker(); } }, [I('swap'), 'Ganti bot']) : null,
+      h('button', { type: 'button', role: 'menuitem', onclick: () => { S.menu = false; window.open(GROUP_URL, '_blank', 'noopener'); } }, [I('chat'), 'Grup diskusi penyewa']),
       h('button', { type: 'button', role: 'menuitem', onclick: () => { S.menu = false; discardAll(); } }, [I('trash'), 'Buang semua draf']),
       h('hr'),
       h('button', { type: 'button', role: 'menuitem', onclick: logout }, [I('logout'), 'Keluar']),
@@ -570,6 +573,7 @@
         onclick: () => { S.group = g.id; S.q = ''; const first = items().find((x) => x.g === g.id); S.sel = first ? first.key : ''; renderApp(); },
       }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)]))]),
       h('p', { class: 'side-note', text: 'Perubahan tersimpan otomatis sebagai draf. Bot baru berubah setelah kamu menekan Luncurkan.' }),
+      h('a', { class: 'side-link', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [I('chat'), 'Grup diskusi penyewa']),
     ]);
   }
   function refreshSide() {
@@ -674,6 +678,34 @@
         ? (d.providerTotal >= (u.total || 0) ? h('span', { class: 'chip custom', text: '✓ Aman: saldo provider cukup' }) : h('span', { class: 'chip err', text: `Waspada: kurang ${rpx((u.total || 0) - d.providerTotal)}` }))
         : null,
     ]);
+    // ── pengaturan bot ──
+    const og = d.settings ? Boolean(d.settings.orderGroupOnly) : null;
+    if (og !== null) {
+      const pick = (mode) => {
+        if ((mode === 'grup') === og) return;
+        openModal({ kind: 'confirm', title: mode === 'grup' ? 'Order hanya di grup?' : 'Order di grup & chat pribadi?',
+          text: mode === 'grup' ? 'Pembeli hanya bisa order TP/TPO & deposit di grup. Di chat pribadi, bot akan membalas "Fitur ini khusus di grup".' : 'Pembeli bisa order TP/TPO & deposit di grup maupun chat pribadi dengan bot.',
+          ok: 'Ya, ubah', onOk: async () => {
+            closeModal(); S.ordBusy = true; refreshMain();
+            const r = await hostRun('/setting', { tenant: S.botId, key: 'orderMode', value: mode }, 30000);
+            S.ordBusy = false;
+            if (r.ok) { if (S.dash && S.dash.settings) S.dash.settings.orderGroupOnly = Boolean(r.result && r.result.orderGroupOnly); toast(mode === 'grup' ? 'Mode order: hanya di grup.' : 'Mode order: grup & chat pribadi.'); }
+            else toast(r.error || 'Gagal mengubah mode order', 'err');
+            refreshMain();
+          } });
+      };
+      const segO = h('div', { class: 'pv-tabs', role: 'radiogroup', 'aria-label': 'Mode order' }, [['grup', 'Hanya di grup'], ['semua', 'Grup & chat pribadi']].map(([k, l]) => {
+        const on = (k === 'grup') === og;
+        return h('button', { type: 'button', role: 'radio', 'aria-checked': String(on), class: on ? 'on' : '', disabled: S.ordBusy ? true : null, onclick: () => pick(k) }, l);
+      }));
+      out.push(h('section', { class: 'dsec' }, [
+        h('h3', { class: 'dh', text: 'Pengaturan bot' }),
+        h('div', { class: 'setrow' }, [
+          h('div', { class: 'tx' }, [h('b', { text: 'Mode order' }), h('small', { text: 'Di mana pembeli boleh order TP / TPO dan deposit saldo.' })]),
+          S.ordBusy ? h('span', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: 'Menyimpan…' })]) : segO,
+        ]),
+      ]));
+    }
     out.push(h('section', { class: 'dsec' }, [
       h('h3', { class: 'dh', text: 'Saldo' }),
       h('div', { class: 'dgrid' }, [
@@ -723,6 +755,10 @@
       sh.enabled && /^https:\/\/docs\.google\.com\//.test(sh.url || '')
         ? h('div', { class: 'dgrid two' }, [link(sh.url, 'Buka Google Sheet Rekap', 'Omset & profit, pembayaran QRIS, status pencairan, data transaksi & user')])
         : msg('info', 'Google Sheet rekap belum dipasang untuk bot ini. Hubungi admin Baramarket untuk memasangnya.'),
+    ]));
+    out.push(h('section', { class: 'dsec' }, [
+      h('h3', { class: 'dh', text: 'Grup diskusi penyewa' }),
+      h('div', { class: 'dgrid two' }, [h('a', { class: 'slink wa', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [h('span', { class: 'gi', icon: 'chat' }), h('span', { class: 'tx' }, [h('b', { text: 'Gabung Grup Diskusi Sewa Bot Topup' }), h('small', { text: 'Tanya jawab, info update fitur & tips jualan bareng penyewa lain' })]), I('ext')])]),
     ]));
     if (d.bot && !d.bot.running) out.push(msg('warn', 'Bot kamu sedang tidak tersambung ke WhatsApp. Saldo & rekap tetap tampil, tapi deposit dari website butuh bot yang aktif.'));
     return out;
