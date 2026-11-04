@@ -13,7 +13,7 @@
 //              POST /api/portal/setting {tenant, key:'orderMode', value:'grup'|'semua'}  → mode order
 //   TOKO:      POST /api/portal/call {tenant, fn, args}  → profit / user / riwayat / banner / PPOB / rekap harian (daftar putih CALLS)
 //   BOT:       POST /api/portal/pair {tenant, botNumber} · POST /api/portal/disconnect {tenant}  (status lewat /cmd)
-//   SEWA:      POST /api/portal/renew {tenant, email, botPhone?} → web_orders (diproses bot Telegram) · GET /api/portal/renew?tenant=&id=
+//   SEWA:      POST /api/portal/renew {tenant, botPhone?} → web_orders (diproses bot Telegram) · GET /api/portal/renew?tenant=&id=
 //   PORTAL_RESERVED_NUMBERS (opsional, Cloudflare): nomor yang tidak boleh dipakai jadi bot (nomor admin), pisahkan koma
 //   GET /api/portal/me · POST /api/portal/logout · POST /api/portal/logout-all · GET /api/portal/config
 //
@@ -355,7 +355,8 @@ async function pricingOf(fs) {
   const p = await fs.get('settings/pricing').catch(() => null);
   const pk = p && Array.isArray(p.packages) && p.packages[0];
   const price = Number(pk ? pk.price : p && p.price) || 0, days = Number(pk ? pk.days : p && p.periodDays) || 0;
-  return price && days ? { price, days, note: (pk && pk.note) || '' } : null;
+  if (price && days) return { price, days, note: (pk && pk.note) || '' };
+  return { price: 15000, days: 30, note: '' };   // sama dengan harga bawaan bot Telegram (topupCore DEFAULT_PACKAGES[0]) bila belum diatur
 }
 async function routeMe(fs, s) {
   const ids = (s.tenants || []).slice(0, 10);
@@ -370,7 +371,6 @@ async function routeMe(fs, s) {
       id, storeName: (st.profile && st.profile.storeName) || d.storeName || '', botNumber: d.displayBotNumber || d.botNumber || '',
       status: d.status || '', expiredAt: Number(d.expiredAt) || 0, connection: d.connection || '', synced: Boolean(states[i]),
       realBot: d.botNumber || '', pendingBot: d.pendingBot || '', trial: Boolean(d.trial),
-      email: String((d.webProfile && d.webProfile.email) || '').slice(0, 120),   // isian awal form perpanjang (data milik penyewa sendiri)
     };
   }).filter(Boolean);
   const nt = notice && notice.text ? { text: String(notice.text).slice(0, 600), level: notice.level === 'warn' ? 'warn' : 'info', at: Number(notice.at) || 0 } : null;
@@ -589,10 +589,12 @@ async function routeDisconnect(fs, s, req) {
 async function routeRenew(fs, s, req) {
   const b = await body(req);
   if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
-  const email = String(b.email || '').trim().toLowerCase().slice(0, 120);
-  if (!EMAIL_RE.test(email)) return fail(400, 'Format email tidak valid.');
   const [t, st] = await Promise.all([fs.get(`tenants/${b.tenant}`), fs.get(`portal_state/${b.tenant}`)]);
   if (!t) return fail(404, 'Penyewa tidak ditemukan.');
+  // Email hanya catatan (bot Telegram mewajibkan field ini, tidak mengirim email apa pun): pakai email lama penyewa,
+  // bila belum ada pakai alamat penanda supaya penyewa tidak perlu mengisi apa-apa.
+  const saved = String((t.webProfile && t.webProfile.email) || '').trim().toLowerCase().slice(0, 120);
+  const email = EMAIL_RE.test(saved) ? saved : `${b.tenant}@penyewa.baramarket.id`;
   if (t.blocked) return fail(403, 'Akun kamu diblokir. Hubungi admin.');
   let botPhone = t.botNumber || '';
   if (!botPhone) {
