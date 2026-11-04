@@ -416,3 +416,5 @@ svg.chart .bar{fill:var(--accent);opacity:.75}
 svg.chart .bar:hover{opacity:1}
 svg.chart .bar.now{fill:var(--flame-b);opacity:.9}
 svg.chart .axl{fill:var(--faint);font-size:11px;font-family:var(--font-body)}
+.tbl td.inv b{display:block;font-weight:600}
+.tbl td.inv small{display:block;font-size:.74rem;color:var(--faint);font-family:var(--font-mono)}
