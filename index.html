@@ -118,7 +118,7 @@ a{color:inherit}
 .field{display:flex;flex-direction:column;gap:5px;min-width:0}
 .field label,.lbl{font-size:.78rem;font-weight:700;color:var(--muted)}
 .field .hint{font-size:.75rem;color:var(--muted)}
-input[type=text],input[type=url],textarea,select{width:100%;font:500 .92rem var(--font-body);color:var(--ink);background:var(--bg);
+input[type=text],input[type=url],input[type=email],input[type=tel],input[type=password],textarea,select{width:100%;font:500 .92rem var(--font-body);color:var(--ink);background:var(--bg);
   border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px}
 textarea{resize:vertical;min-height:72px}
 input:focus,textarea:focus,select:focus{outline:2px solid var(--focus);outline-offset:1px}
@@ -314,6 +314,73 @@ input[type=password]:focus{outline:2px solid var(--focus);outline-offset:1px}
 .login-status.err{color:var(--warn)}
 .login-status.ok{color:var(--ok)}
 .login > .hint{color:var(--muted);font-size:.82rem;margin:0}
+
+/* sewa */
+.sewa-cta{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:14px;text-decoration:none;color:var(--ink);
+  border-radius:var(--r-lg);padding:16px;border:1.5px solid transparent;
+  background:linear-gradient(var(--surface),var(--surface)) padding-box,conic-gradient(from var(--ang),var(--flame-a),var(--flame-b),var(--spark),var(--flame-a)) border-box}
+.sewa-cta.rise{animation:rise .7s cubic-bezier(.2,.8,.2,1) both,spin 5s linear infinite;animation-delay:calc(var(--i,0) * 70ms),0s}
+.sewa-cta .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame)}
+.sewa-cta .ic svg{width:24px;height:24px}
+.sewa-cta .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sewa-cta .ey{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.sewa-cta .t{font-family:var(--font-display);font-weight:700;font-size:1.05rem;line-height:1.25}
+.sewa-cta .s{font-size:.84rem;color:var(--muted)}
+.sewa-cta .go{grid-column:1/-1;justify-self:start;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:.88rem;color:var(--on-flame);
+  background:linear-gradient(135deg,var(--flame-a),var(--flame-b));padding:9px 14px;border-radius:999px}
+.sewa-cta .go svg{width:15px;height:15px}
+.sewa-cta:hover .go svg{transform:translate(2px,-2px)}
+.sw-back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-weight:600;font-size:.9rem;align-self:flex-start}
+.sw-back svg{width:16px;height:16px}
+.sw-hero{display:flex;flex-direction:column;gap:10px}
+.sw-hero .section-label{color:var(--accent);margin:0}
+.sw-hero h1{font-family:var(--font-display);font-size:1.7rem;line-height:1.15;margin:0;text-wrap:balance}
+.sw-hero .bio{margin:0}
+.sw-price{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sw-price .lbl{font-size:.82rem;color:var(--muted)}
+.sw-price .v{font-family:var(--font-display);font-weight:700;font-size:2rem;line-height:1;background:linear-gradient(90deg,var(--title-a),var(--title-b));-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+.sw-price .per{font-size:.9rem;color:var(--muted)}
+.sw-feat{justify-content:flex-start}
+.sw-panel{gap:14px}
+.sw-panel h2{font-size:1.15rem}
+.sw-form{display:flex;flex-direction:column;gap:12px}
+.btn2.big{width:100%;padding:14px 18px;font-size:1rem}
+.sw-note{margin:0;font-size:.8rem;color:var(--muted);text-align:center}
+.sw-note.warn{color:var(--warn)}
+.sw-note a{color:var(--accent)}
+.sw-msgline{margin:0;font-size:.88rem;font-weight:600}
+.sw-msgline.err{color:var(--warn)}
+.sw-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.sw-steps li{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.7rem;font-weight:600;color:var(--muted);text-align:center}
+.sw-steps .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);font-size:.78rem;font-variant-numeric:tabular-nums}
+.sw-steps li.done .n{background:var(--ok);border-color:var(--ok);color:var(--bg)}
+.sw-steps li.cur{color:var(--ink)}
+.sw-steps li.cur .n{border-color:transparent;color:var(--on-flame);background:linear-gradient(135deg,var(--flame-a),var(--flame-b))}
+.sw-wait{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 0;text-align:center}
+.sw-wait p{margin:0}
+.spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--flame-a);animation:spinr 0.9s linear infinite}
+@keyframes spinr{to{transform:rotate(360deg)}}
+.sw-qr,.sw-pair,.sw-done{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.sw-qr .lbl,.sw-pair .lbl{margin:0;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sw-qr .total{margin:0;font-family:var(--font-display);font-weight:700;font-size:1.9rem;font-variant-numeric:tabular-nums}
+.sw-qr .sub,.sw-done .sub{margin:0;font-size:.85rem;color:var(--muted)}
+.sw-qr img{width:min(100%,260px);height:auto;aspect-ratio:1;max-width:100%;background:#FFFFFF;border-radius:14px;padding:10px;margin:6px 0}
+.sw-pair .code{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;font-size:2.2rem;letter-spacing:.12em;padding:10px 18px;border-radius:12px;background:var(--bg);border:1px dashed var(--accent)}
+.sw-howto{margin:4px 0 0;padding-left:20px;text-align:left;font-size:.88rem;display:flex;flex-direction:column;gap:4px}
+.sw-done .ok{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:var(--ok);color:var(--bg)}
+.sw-done .ok svg{width:28px;height:28px}
+.sw-done h3,.sw-msg h3{margin:0;font-family:var(--font-display);font-size:1.15rem}
+.sw-done p{margin:0}
+.sw-msg{border-radius:var(--r-md);padding:14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;border:1px solid var(--line);background:var(--bg)}
+.sw-msg.err{border-color:var(--warn)}
+.sw-msg.warn{border-color:var(--accent)}
+.sw-msg p{margin:0;overflow-wrap:anywhere}
+.sw-id{margin:0;font-size:.72rem;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.guide-row .guide-pg{flex:0 0 72%;scroll-snap-align:start;position:relative;display:block;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:#FFFFFF}
+@media (min-width:480px){.guide-row .guide-pg{flex-basis:56%}}
+.guide-pg img{display:block;width:100%;height:auto;aspect-ratio:1100/1557;max-width:100%}
+.guide-pg .pg{position:absolute;right:8px;bottom:8px;font-size:.72rem;font-weight:700;color:#FFFFFF;background:rgba(20,12,10,.65);padding:3px 8px;border-radius:999px}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
 </style>
 </head>
 <body>
@@ -441,12 +508,14 @@ function el(tag,props,kids){
 }
 function safeUrl(u){
   u=String(u||"").trim(); if(!u)return "";
+  if(/^#[A-Za-z0-9-]+$/.test(u))return u;
   if(/^\s*(javascript|data|vbscript|file):/i.test(u))return "";
   if(/^https?:\/\//i.test(u)||/^(mailto|tel|sms):/i.test(u))return u;
   if(/^[a-z][a-z0-9+.-]*:/i.test(u))return "";
   return "https://"+u.replace(/^\/+/,"");
 }
-function host(u){try{var x=new URL(u);return (x.host+x.pathname).replace(/\/$/,"").replace(/^www\./,"");}catch(e){return u;}}
+function tgt(u){return /^#/.test(u)?null:"_blank";}
+function host(u){try{if(/^#/.test(u))return "Halaman di website ini";}catch(e){}try{var x=new URL(u);return (x.host+x.pathname).replace(/\/$/,"").replace(/^www\./,"");}catch(e){return u;}}
 function lines(t){return String(t||"").split(/\n|,/).map(function(s){return s.trim();}).filter(Boolean);}
 function uid(){return "l"+Math.random().toString(36).slice(2,8);}
 function clone(o){return JSON.parse(JSON.stringify(o));}
@@ -496,7 +565,15 @@ function renderView(s){
       pr.eyebrow?el("p",{class:"eyebrow",text:pr.eyebrow}):null,
       pr.title?el("h2",{text:pr.title}):null,
       pr.text?el("p",{text:pr.text}):null,
-      (btnUrl&&pr.btnLabel)?el("a",{class:"btn",href:btnUrl,target:"_blank",rel:"noopener"},[pr.btnLabel,el("span",{html:svg("arrow",UI)})]):null
+      (btnUrl&&pr.btnLabel)?el("a",{class:"btn",href:btnUrl,target:tgt(btnUrl),rel:"noopener"},[pr.btnLabel,el("span",{html:svg("arrow",UI)})]):null
+    ]));
+  }
+  var sc=sewaCta(s);
+  if(sc.show!==false&&sc.title){
+    w.appendChild(el("a",{class:"sewa-cta rise",style:"--i:"+(n++),href:"#sewa"},[
+      el("span",{class:"ic",html:svg("bot")}),
+      el("span",{class:"tx"},[sc.eyebrow?el("span",{class:"ey",text:sc.eyebrow}):null,el("span",{class:"t",text:sc.title}),sc.text?el("span",{class:"s",text:sc.text}):null]),
+      el("span",{class:"go"},[sc.btnLabel||"Sewa sekarang",el("span",{html:svg("arrow",UI)})])
     ]));
   }
   var ls=(s.links||[]).filter(function(l){return l.title&&safeUrl(l.url);});
@@ -504,7 +581,7 @@ function renderView(s){
     var nav=el("nav",{class:"links","aria-label":"Link"});
     ls.forEach(function(l){
       var u=safeUrl(l.url);
-      nav.appendChild(el("a",{class:"link rise"+(l.featured?" featured":""),style:"--i:"+(n++),href:u,target:"_blank",rel:"noopener"},[
+      nav.appendChild(el("a",{class:"link rise"+(l.featured?" featured":""),style:"--i:"+(n++),href:u,target:tgt(u),rel:"noopener"},[
         el("span",{class:"ic",html:svg(l.icon)}),
         el("span",{class:"tx"},[
           el("span",{class:"t"},[l.title,l.featured?el("span",{class:"badge",text:"Hot"}):null]),
@@ -524,7 +601,7 @@ function renderView(s){
         x.image?el("img",{src:x.image,alt:"",loading:"lazy"}):el("span",{class:"ph-ic",html:svg("megaphone")}),
         x.badge?el("span",{class:"news-badge"},[el("span",{html:svg("calendar")}),x.badge]):null
       ]);
-      var more=u?el("a",{class:"news-more",href:u,target:"_blank",rel:"noopener"},[x.linkLabel||"Baca selengkapnya",el("span",{html:svg("arrow",UI)})])
+      var more=u?el("a",{class:"news-more",href:u,target:tgt(u),rel:"noopener"},[x.linkLabel||"Baca selengkapnya",el("span",{html:svg("arrow",UI)})])
         :(x.text&&x.text.length>90?el("button",{type:"button",class:"news-more",onclick:function(){expanded[x.id]=!exp;render();}},[exp?"Tutup":"Baca selengkapnya"]):null);
       row.appendChild(el("article",{class:"news-card"+(exp?" open":""),style:"--i:"+k},[
         media,
@@ -712,6 +789,19 @@ function renderEditor(){
   nc.appendChild(el("button",{type:"button",class:"btn2 add",onclick:function(){var x={id:uid(),image:"",badge:"Terbaru",date:"",title:"",text:"",url:"",linkLabel:""};d.news.unshift(x);touch();render();ss(function(){document.getElementById("n-"+x.id+"-t").focus();});}},[el("span",{html:svg("plus",UI)}),"Tambah kabar (muncul paling depan)"]));
   w.appendChild(nc);
 
+  // sewa CTA
+  d.sewaCta=sewaCta(d);
+  w.appendChild(el("section",{class:"card"},[
+    el("h2",{text:"Tombol Sewa Bot Topup"}),
+    el("p",{class:"hint",style:"margin:0",text:"Kartu di halaman utama yang membuka halaman pendaftaran sewa (alamat #sewa). Harga diambil otomatis dari pengaturan sewa di bot."}),
+    checkbox(d.sewaCta,"show","sc-show","Tampilkan kartu Sewa Bot di halaman utama"),
+    bind(d.sewaCta,"eyebrow","sc-eye","Label kecil"),
+    bind(d.sewaCta,"title","sc-title","Judul"),
+    bind(d.sewaCta,"text","sc-text","Keterangan",{area:true,rows:2}),
+    bind(d.sewaCta,"btnLabel","sc-btn","Tulisan tombol"),
+    el("a",{class:"btn2",href:"#sewa",target:"_blank",style:"align-self:flex-start;text-decoration:none"},["Lihat halaman sewa"])
+  ]));
+
   // payments + footer
   w.appendChild(el("section",{class:"card"},[
     el("h2",{text:"Pembayaran & penutup"}),
@@ -855,6 +945,7 @@ function embers(){
 embers();
 
 function render(){
+  if(mode==="sewa"){renderSewa();return;}
   if(mode==="login"){renderLogin();return;}
   if(mode==="edit"&&draft&&previewing){renderPreview();return;}
   if(mode==="edit"&&draft)renderEditor(); else renderView(state);
@@ -1102,6 +1193,202 @@ function publishGitHub(clean){
   });
 }
 
+
+/* ---------- halaman Sewa Bot Topup (#sewa) ---------- */
+var FB_CONFIG={apiKey:"AIzaSyAX3J7QaqZS34ziJQ1HPFRgjn24vs55jTM",authDomain:"sewa-bot-topup.firebaseapp.com",projectId:"sewa-bot-topup",storageBucket:"sewa-bot-topup.firebasestorage.app",messagingSenderId:"817065541092",appId:"1:817065541092:web:f7d84ed59304e0fe491bf1"};
+var FB_SDK="https://www.gstatic.com/firebasejs/10.14.1/";
+var SEWA_KEY="bm-sewa-order", SEWA_FORM_KEY="bm-sewa-form";
+var GUIDE={pages:8,img:function(i){return "sewa/panduan-"+i+".webp";},pdf:"sewa/panduan-sewa-bot-topup.pdf"};
+var CS_WA="https://wa.me/6282312108501?text=Halo%20min%2C%20saya%20daftar%20sewa%20bot%20lewat%20website";
+var SEWA_CTA_DEFAULT={show:true,eyebrow:"Punya toko topup sendiri?",title:"Sewa Bot Topup WhatsApp",text:"Toko topup & PPOB otomatis 24 jam di nomor WhatsApp-mu. Daftar dan bayar QRIS langsung di sini.",btnLabel:"Sewa sekarang"};
+function sewaCta(s){var c=s&&s.sewaCta;return c&&typeof c==="object"?Object.assign({},SEWA_CTA_DEFAULT,c):Object.assign({},SEWA_CTA_DEFAULT);}
+var sw={db:null,loading:null,unsub:null,order:null,pricing:null,busy:false,err:"",form:null,tick:null,showForm:false};
+function rp(n){return "Rp"+String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g,".");}
+function normPhone(v){var n=String(v||"").replace(/\D/g,"");if(n.indexOf("0")===0)n="62"+n.slice(1);else if(n.indexOf("8")===0)n="62"+n;return n;}
+function okPhone(n){return /^62\d{8,13}$/.test(n);}
+function rid(n){var a="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",b=crypto.getRandomValues(new Uint8Array(n)),o="";for(var i=0;i<n;i++)o+=a[b[i]%62];return o;}
+function loadScript(src){return new Promise(function(res,rej){var x=document.createElement("script");x.src=src;x.async=true;x.onload=res;x.onerror=function(){rej(new Error("Gagal memuat "+src));};document.head.appendChild(x);});}
+function fb(){
+  if(sw.db)return Promise.resolve(sw.db);
+  if(!sw.loading)sw.loading=(window.firebase&&window.firebase.firestore?Promise.resolve():loadScript(FB_SDK+"firebase-app-compat.js").then(function(){return loadScript(FB_SDK+"firebase-firestore-compat.js");}))
+    .then(function(){var app=firebase.apps.length?firebase.app():firebase.initializeApp(FB_CONFIG);sw.db=app.firestore();return sw.db;})
+    .catch(function(e){sw.loading=null;throw e;});
+  return sw.loading;
+}
+function sewaStop(){try{if(sw.unsub)sw.unsub();}catch(e){}sw.unsub=null;if(sw.tick){clearInterval(sw.tick);sw.tick=null;}}
+function sewaSaved(){return ss(function(){return JSON.parse(localStorage.getItem(SEWA_KEY)||"null");});}
+function fbErr(e){
+  var c=e&&e.code||"";
+  if(/permission-denied/.test(c))return "Pendaftaran lewat website belum dibuka. Hubungi admin lewat WhatsApp.";
+  if(/unavailable|deadline|network/i.test(c+" "+(e&&e.message)))return "Koneksi ke server terputus. Cek internet lalu coba lagi.";
+  return "Terjadi kesalahan ("+(c||(e&&e.message)||"tidak diketahui")+"). Coba lagi, atau hubungi admin.";
+}
+function sewaWatch(id){
+  sewaStop();
+  fb().then(function(db){
+    sw.unsub=db.collection("web_orders").doc(id).onSnapshot(function(snap){
+      if(!snap.exists){sw.order=null;ss(function(){localStorage.removeItem(SEWA_KEY);});}
+      else sw.order={id:id,d:snap.data()};
+      sw.err="";if(mode==="sewa")renderSewa();
+    },function(e){sw.err=fbErr(e);if(mode==="sewa")renderSewa();});
+  },function(e){sw.err="Tidak bisa memuat sistem pendaftaran. Cek internet lalu muat ulang halaman.";renderSewa();});
+  sw.tick=setInterval(function(){var c=document.getElementById("sw-count");if(c&&sw.order){c.textContent=countdown(sw.order.d.expireAt);}var w=document.getElementById("sw-wait");if(w&&sw.order&&waitedLong())w.hidden=false;},1000);
+}
+function waitedLong(){var x=sewaSaved();return x&&x.at&&Date.now()-x.at>90000&&sw.order&&/^(new|checking)$/.test(sw.order.d.status||"new");}
+function countdown(ms){var t=Math.max(0,Math.round((Number(ms)-Date.now())/1000));var m=Math.floor(t/60),s2=t%60;return t?(m+" menit "+("0"+s2).slice(-2)+" detik"):"waktu habis";}
+function sewaPricing(){
+  if(sw.pricing)return;
+  sw.pricing={loading:true};
+  fb().then(function(db){return db.collection("settings").doc("pricing").get();}).then(function(s){
+    var d=s.exists?s.data():{};sw.pricing={price:Number(d.price)||15000,periodDays:Number(d.periodDays)||30};if(mode==="sewa")renderSewa();
+  }).catch(function(){sw.pricing={price:15000,periodDays:30,guess:true};if(mode==="sewa")renderSewa();});
+}
+function sewaFormVals(){
+  if(!sw.form)sw.form=ss(function(){return JSON.parse(localStorage.getItem(SEWA_FORM_KEY)||"null");})||{email:"",storeName:"",ownerName:"",ownerPhone:"",botName:"",botPhone:""};
+  return sw.form;
+}
+function sewaValidate(v){
+  var d={email:String(v.email||"").trim().toLowerCase(),storeName:String(v.storeName||"").trim(),ownerName:String(v.ownerName||"").trim(),ownerPhone:normPhone(v.ownerPhone),botName:String(v.botName||"").trim(),botPhone:normPhone(v.botPhone)};
+  if(!/^[^\s@]{1,64}@[^\s@]{1,100}\.[^\s@]{2,24}$/.test(d.email))return {err:"Format email belum benar, contoh: nama@gmail.com",f:"sw-email"};
+  if(d.storeName.length<2)return {err:"Nama store belum diisi.",f:"sw-store"};
+  if(d.ownerName.length<2)return {err:"Nama owner belum diisi.",f:"sw-owner"};
+  if(!okPhone(d.ownerPhone))return {err:"Nomor owner belum benar. Tulis nomor WhatsApp, contoh 081234567890.",f:"sw-ophone"};
+  if(d.botName.length<2)return {err:"Nama bot belum diisi.",f:"sw-bot"};
+  if(!okPhone(d.botPhone))return {err:"Nomor bot belum benar. Tulis nomor WhatsApp, contoh 081234567890.",f:"sw-bphone"};
+  if(d.ownerPhone===d.botPhone)return {err:"Nomor bot harus berbeda dengan nomor owner.",f:"sw-bphone"};
+  return {d:d};
+}
+function sewaSubmit(){
+  if(sw.busy)return;
+  var r=sewaValidate(sewaFormVals());
+  if(r.err){sw.err=r.err;renderSewa();ss(function(){document.getElementById(r.f).focus();});return;}
+  sw.busy=true;sw.err="";renderSewa();
+  var id=rid(24);
+  fb().then(function(db){
+    var d=r.d;d.status="new";d.src="web";d.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+    return db.collection("web_orders").doc(id).set(d);
+  }).then(function(){
+    sw.busy=false;sw.showForm=false;
+    ss(function(){localStorage.setItem(SEWA_KEY,JSON.stringify({id:id,at:Date.now()}));});
+    sw.order={id:id,d:{status:"new"}};sewaWatch(id);renderSewa();
+  },function(e){sw.busy=false;sw.err=fbErr(e);renderSewa();});
+}
+function sewaReset(keepForm){
+  sewaStop();sw.order=null;sw.err="";sw.showForm=true;
+  ss(function(){localStorage.removeItem(SEWA_KEY);});
+  if(!keepForm){sw.form=null;ss(function(){localStorage.removeItem(SEWA_FORM_KEY);});}
+  renderSewa();window.scrollTo({top:(document.getElementById("sw-panel")||{}).offsetTop-20||0,behavior:"smooth"});
+}
+function copyBtn(text,label){
+  return el("button",{type:"button",class:"btn2",onclick:function(e){var b=e.currentTarget;
+    Promise.resolve().then(function(){return navigator.clipboard.writeText(text);}).then(function(){b.textContent="Tersalin ✓";setTimeout(function(){b.textContent=label;},1600);},function(){b.textContent="Salin manual: "+text;});}},[label]);
+}
+function sewaStatusPanel(o){
+  var d=o.d||{},st=d.status||"new",kids=[];
+  var stepNo={new:1,checking:1,rejected:1,awaiting_payment:2,expired:2,paid:3,pairing:3,pair_later:3,pair_timeout:3,pair_failed:3,done:4}[st]||1;
+  kids.push(el("ol",{class:"sw-steps","aria-label":"Tahap pendaftaran"},["Isi data","Bayar QRIS","Tautkan bot","Selesai"].map(function(t,i){
+    return el("li",{class:(i+1<stepNo?"done":i+1===stepNo?"cur":"")},[el("span",{class:"n",text:String(i+1)}),t]);})));
+  if(st==="new"||st==="checking"){
+    kids.push(el("div",{class:"sw-wait"},[el("span",{class:"spin","aria-hidden":"true"}),el("p",{text:d.message||"Data terkirim. Menyiapkan QRIS…"})]));
+    kids.push(el("p",{class:"sw-note warn",id:"sw-wait",hidden:!waitedLong()},["Server belum merespons. Biasanya karena sedang ramai atau sedang perawatan. Tunggu sebentar, atau ",el("a",{href:CS_WA,target:"_blank",rel:"noopener",text:"hubungi admin"}),"."]));
+  }else if(st==="awaiting_payment"){
+    kids.push(el("div",{class:"sw-qr"},[
+      el("p",{class:"lbl",text:"Total bayar"}),
+      el("p",{class:"total",text:rp(d.total||d.price)}),
+      el("p",{class:"sub",text:"Sewa "+(d.periodDays||30)+" hari"+(d.renewing?" (perpanjangan)":"")+". Bayar sesuai total, sudah termasuk kode unik."}),
+      d.qr?el("img",{src:d.qr,alt:"QRIS pembayaran sewa bot",width:"260",height:"260"}):el("p",{text:"QRIS sedang dimuat…"}),
+      el("p",{class:"sub"},["Berlaku ",el("b",{id:"sw-count",text:countdown(d.expireAt)})]),
+      el("p",{class:"sw-note",text:"Scan pakai m-banking atau e-wallet apa saja. Kalau bayar dari HP ini juga, screenshot QR-nya lalu pilih gambar di aplikasi pembayaranmu. Halaman ini berubah otomatis begitu pembayaran masuk."})
+    ]));
+  }else if(st==="paid"){
+    kids.push(el("div",{class:"sw-wait"},[el("span",{class:"spin","aria-hidden":"true"}),el("p",{text:d.message||"Pembayaran berhasil. Menyiapkan bot kamu…"})]));
+  }else if(st==="pairing"){
+    if(d.pairCode){
+      var code=String(d.pairCode);
+      kids.push(el("div",{class:"sw-pair"},[
+        el("p",{class:"lbl",text:"Kode pairing"}),
+        el("p",{class:"code",text:code.length===8?code.slice(0,4)+"-"+code.slice(4):code}),
+        copyBtn(code,"Salin kode"),
+        el("ol",{class:"sw-howto"},[
+          el("li",{text:"Buka WhatsApp di HP nomor bot."}),
+          el("li",{text:"Ketuk ⋮ (Android) atau Setelan (iPhone), lalu Perangkat tertaut."}),
+          el("li",{text:"Ketuk Tautkan perangkat, lalu Tautkan dengan nomor telepon saja."}),
+          el("li",{text:"Masukkan kode di atas. Selesai, bot langsung aktif."})
+        ]),
+        el("p",{class:"sw-note",text:"Kode berlaku beberapa menit. Halaman ini berubah sendiri begitu bot tersambung."})
+      ]));
+    }else kids.push(el("div",{class:"sw-wait"},[el("span",{class:"spin","aria-hidden":"true"}),el("p",{text:d.message||"Meminta kode pairing…"})]));
+  }else if(st==="done"){
+    kids.push(el("div",{class:"sw-done"},[el("span",{class:"ok",html:svg("check",UI)}),el("h3",{text:d.renewing||(/diperpanjang/i.test(d.message||""))?"Masa sewa diperpanjang":"Bot kamu sudah aktif"}),el("p",{text:d.message||"Bot sudah tersambung."}),
+      d.expiredAt?el("p",{class:"sub",text:"Aktif sampai "+new Date(d.expiredAt).toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}):null,
+      el("p",{class:"sw-note",text:"Detail pembayaran juga dikirim ke WhatsApp nomor owner. Untuk mengatur toko, chat bot WhatsApp Baramarket lalu ketik menutopup."})]));
+  }else{
+    var warn=/^(pair_later|pair_timeout|pair_failed)$/.test(st);
+    kids.push(el("div",{class:"sw-msg "+(warn?"warn":"err")},[
+      el("h3",{text:st==="rejected"?"Pendaftaran belum bisa diproses":st==="expired"?"Waktu pembayaran habis":"Sewa aktif, bot belum tersambung"}),
+      el("p",{text:d.message||d.error||"Silakan coba lagi."}),
+      warn&&d.botPhone?copyBtn("pairingtopup "+d.botPhone,"Salin perintah pairing"):null
+    ]));
+  }
+  var terminal=/^(rejected|expired|done|pair_later|pair_timeout|pair_failed)$/.test(st);
+  kids.push(el("div",{class:"tools",style:"flex-wrap:wrap;justify-content:center"},[
+    terminal?el("button",{type:"button",class:"btn2 primary",onclick:function(){sewaReset(st==="rejected"||st==="expired");}},[st==="rejected"?"Perbaiki data":st==="expired"?"Buat QRIS baru":"Daftar lagi"]):null,
+    el("a",{class:"btn2",href:CS_WA,target:"_blank",rel:"noopener",style:"text-decoration:none"},["Tanya admin"])
+  ]));
+  kids.push(el("p",{class:"sw-id",text:"Kode pesanan: "+o.id.slice(0,8)}));
+  return kids;
+}
+function sewaForm(){
+  var v=sewaFormVals();
+  function fld(key,id,label,opt){
+    opt=opt||{};
+    var i=el("input",{id:id,type:opt.type||"text",inputmode:opt.im||null,autocomplete:opt.ac||"off",placeholder:opt.ph||null,maxlength:opt.max||"60"});
+    i.value=v[key]||"";
+    i.addEventListener("input",function(){v[key]=i.value;ss(function(){localStorage.setItem(SEWA_FORM_KEY,JSON.stringify(v));});});
+    return el("div",{class:"field"},[el("label",{for:id,text:label}),i,opt.hint?el("span",{class:"hint",text:opt.hint}):null]);
+  }
+  var f=el("form",{class:"sw-form",novalidate:true},[
+    fld("email","sw-email","Email terdaftar di Baramarket",{type:"email",im:"email",ac:"email",ph:"nama@gmail.com",max:"120"}),
+    fld("storeName","sw-store","Nama store",{ph:"Contoh: Nara Store"}),
+    el("div",{class:"row2"},[fld("ownerName","sw-owner","Nama owner",{ac:"name",ph:"Nama kamu"}),fld("ownerPhone","sw-ophone","Nomor owner",{type:"tel",im:"tel",ac:"tel",ph:"08xxxxxxxxxx",max:"20",hint:"Nomor WhatsApp-mu untuk notifikasi."})]),
+    el("div",{class:"row2"},[fld("botName","sw-bot","Nama bot",{ph:"Contoh: Nara Bot"}),fld("botPhone","sw-bphone","Nomor bot",{type:"tel",im:"tel",ph:"08xxxxxxxxxx",max:"20",hint:"Nomor WhatsApp yang dijadikan bot. Siapkan HP-nya untuk kode pairing."})]),
+    el("button",{type:"submit",class:"btn2 primary big",disabled:sw.busy||null},[el("span",{html:svg("qr")}),sw.busy?"Membuat QRIS…":"Lanjut ke pembayaran QRIS"]),
+    el("p",{class:"sw-note",text:"Dengan melanjutkan, data ini dipakai untuk membuat bot topup-mu dan dikirim ke admin Baramarket."})
+  ]);
+  f.addEventListener("submit",function(e){e.preventDefault();sewaSubmit();});
+  return f;
+}
+function renderSewa(){
+  if(!inClaude)applyTheme(state.theme||"dark");
+  sewaPricing();
+  var saved=sewaSaved();
+  if(saved&&saved.id&&!sw.order&&!sw.showForm){sw.order={id:saved.id,d:{status:"new"}};sewaWatch(saved.id);}
+  var pr=sw.pricing||{},price=pr.price?rp(pr.price):"…",per=pr.periodDays||30;
+  var w=el("main",{class:"wrap sewa"});
+  w.appendChild(el("a",{class:"sw-back",href:"#"},[el("span",{html:svg("left",UI)}),"Kembali"]));
+  w.appendChild(el("header",{class:"sw-hero rise"},[
+    el("p",{class:"section-label",text:"Sewa Bot Topup WhatsApp"}),
+    el("h1",{text:"Toko topup otomatis 24 jam di nomor WhatsApp-mu"}),
+    el("p",{class:"bio",text:"Pembeli order, bayar QRIS, produk terkirim. Tanpa admin jaga HP, tanpa pusing server."}),
+    el("div",{class:"sw-price"},[el("span",{class:"lbl",text:"Mulai dari"}),el("span",{class:"v",text:price}),el("span",{class:"per",text:"/ "+per+" hari"})]),
+    el("ul",{class:"chips sw-feat"},["QRIS otomatis","Refund otomatis","Harga per role","Rekap Google Sheet","3 provider"].map(function(x){return el("li",{text:x});}))
+  ]));
+  var panel=el("section",{class:"card sw-panel rise",id:"sw-panel",style:"--i:1"});
+  panel.appendChild(el("h2",{text:sw.order?"Status pendaftaran":"Daftar sewa bot"}));
+  if(sw.err)panel.appendChild(el("p",{class:"sw-msgline err",role:"alert",text:sw.err}));
+  if(sw.order)sewaStatusPanel(sw.order).forEach(function(k){if(k)panel.appendChild(k);});
+  else panel.appendChild(sewaForm());
+  w.appendChild(panel);
+  var row=el("div",{class:"news-row guide-row",tabindex:"0","aria-label":"Halaman panduan"});
+  for(var i=1;i<=GUIDE.pages;i++)row.appendChild(el("a",{class:"guide-pg",href:GUIDE.img(i),target:"_blank",rel:"noopener"},[el("img",{src:GUIDE.img(i),alt:"Panduan sewa bot halaman "+i,loading:"lazy",width:"1100",height:"1557"}),el("span",{class:"pg",text:i+"/"+GUIDE.pages})]));
+  w.appendChild(el("section",{class:"news rise",style:"--i:2"},[
+    el("div",{class:"news-head"},[el("div",{class:"news-titles"},[el("p",{class:"section-label",text:"Panduan"}),el("h2",{text:"Kenali bot sebelum sewa"}),el("p",{class:"news-sub",text:"Geser untuk melihat semua halaman. Ketuk halaman untuk memperbesar."})])]),
+    row,
+    el("a",{class:"btn2",href:GUIDE.pdf,target:"_blank",rel:"noopener",style:"align-self:flex-start;text-decoration:none"},[el("span",{html:svg("download")}),"Buka PDF panduan"])
+  ]));
+  app.replaceChildren(w);
+}
+
 /* ---------- boot: isi terbaru dari data.json ---------- */
 function loadRemote(){
   if(inClaude||!/^https?:$/.test(location.protocol))return Promise.resolve();
@@ -1117,6 +1404,8 @@ Promise.all([loadRemote(),probeServer()]).then(function(){render();checkHash();}
 
 function checkHash(){
   if(inClaude)return;
+  if(location.hash==="#sewa"){if(mode!=="sewa"){mode="sewa";draft=null;previewing=false;render();window.scrollTo(0,0);}return;}
+  if(mode==="sewa"){mode="view";sewaStop();render();}
   if(location.hash!=="#edit"){if(localEdit&&(mode==="login"||mode==="edit")){mode="view";draft=null;previewing=false;render();}return;}
   localEdit=true;canEdit=true;
   if(!session()){if(mode!=="login"){mode="login";status={text:"",kind:""};render();}return;}
