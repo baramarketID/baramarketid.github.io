@@ -459,6 +459,108 @@ input[type=password]:focus{outline:2px solid var(--focus);outline-offset:1px}
 .lb-close:focus-visible,.lb-nav:focus-visible{outline:2px solid #FFB36B;outline-offset:2px}
 @media (max-width:560px){.lb-nav{top:auto;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:none}.lb{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}}
 @media (prefers-reduced-motion:reduce){.lb,.lb.out,.lb-img.in{animation:none}}
+
+/* ═══════════ LIQUID GLASS (gaya iOS) ═══════════
+   Kartu jadi kaca tembus pandang yang mem-blur latar bara cair di belakangnya, pinggiran berkilau,
+   kilau ikut kursor (--mx/--my diisi skrip), kontrol berbentuk kapsul. Terang & gelap. */
+:root{
+  --lg-fill:rgba(255,255,255,.42);--lg-top:rgba(255,255,255,.7);--lg-bot:rgba(255,255,255,.28);
+  --lg-edge:rgba(255,255,255,.75);--lg-edge2:rgba(255,255,255,.25);--lg-line:rgba(255,255,255,.55);
+  --lg-shadow:0 18px 44px -26px rgba(140,60,20,.38),inset 0 1px 0 rgba(255,255,255,.9);
+  --lg-spec:rgba(255,255,255,.55);--lg-well:rgba(255,255,255,.5);
+  --lg-blur:blur(22px) saturate(180%);
+  --lg-b1:rgba(255,150,70,.55);--lg-b2:rgba(255,92,120,.38);--lg-b3:rgba(170,120,255,.3);--lg-b4:rgba(255,200,90,.42);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --lg-fill:rgba(28,20,18,.42);--lg-top:rgba(255,255,255,.09);--lg-bot:rgba(255,255,255,.02);
+  --lg-edge:rgba(255,255,255,.5);--lg-edge2:rgba(255,255,255,.08);--lg-line:rgba(255,255,255,.08);
+  --lg-shadow:0 22px 54px -30px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.12);
+  --lg-spec:rgba(255,255,255,.13);--lg-well:rgba(0,0,0,.24);
+  --lg-b1:rgba(245,122,28,.42);--lg-b2:rgba(236,52,66,.34);--lg-b3:rgba(150,58,230,.24);--lg-b4:rgba(255,176,72,.22)}}
+:root[data-theme="dark"]{
+  --lg-fill:rgba(28,20,18,.42);--lg-top:rgba(255,255,255,.09);--lg-bot:rgba(255,255,255,.02);
+  --lg-edge:rgba(255,255,255,.5);--lg-edge2:rgba(255,255,255,.08);--lg-line:rgba(255,255,255,.08);
+  --lg-shadow:0 22px 54px -30px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.12);
+  --lg-spec:rgba(255,255,255,.13);--lg-well:rgba(0,0,0,.24);
+  --lg-b1:rgba(245,122,28,.42);--lg-b2:rgba(236,52,66,.34);--lg-b3:rgba(150,58,230,.24);--lg-b4:rgba(255,176,72,.22)}
+
+/* latar bara cair: gumpalan warna yang bergeser pelan — inilah yang dibiaskan kaca */
+body::before{content:"";position:fixed;inset:-10vmax;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(38vmax 38vmax at 14% 10%,var(--lg-b1),transparent 62%),
+    radial-gradient(34vmax 34vmax at 90% 16%,var(--lg-b2),transparent 62%),
+    radial-gradient(44vmax 44vmax at 76% 92%,var(--lg-b3),transparent 62%),
+    radial-gradient(32vmax 32vmax at 6% 86%,var(--lg-b4),transparent 62%);
+  filter:blur(10px);animation:lgmorph 30s ease-in-out infinite alternate}
+@keyframes lgmorph{0%{transform:translate3d(0,0,0) scale(1) rotate(0)}50%{transform:translate3d(3%,-2%,0) scale(1.08) rotate(4deg)}100%{transform:translate3d(-3%,3%,0) scale(1.02) rotate(-3deg)}}
+
+/* ── permukaan kaca ── */
+.link,.sewa-cta,.manage-cta,.news-card,.card,.live,.chips li,.fab,.ipick,.igrid,.le,.sw-msg,.btn2:not(.primary),.ib,.pay li{
+  background:radial-gradient(220px circle at var(--mx,-300px) var(--my,-300px),var(--lg-spec),transparent 65%),linear-gradient(180deg,var(--lg-top),var(--lg-bot)),var(--lg-fill);
+  -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);border-color:var(--lg-line);box-shadow:var(--lg-shadow)}
+.link,.sewa-cta,.manage-cta,.news-card,.card,.sw-msg{position:relative;isolation:isolate}
+.fab{isolation:isolate}
+/* pinggiran berkilau (specular rim) */
+.link::after,.sewa-cta::after,.manage-cta::after,.news-card::after,.card::after,.fab::after,.sw-msg::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:3;
+  background:linear-gradient(150deg,var(--lg-edge),var(--lg-edge2) 26%,transparent 48%,var(--lg-edge2) 72%,var(--lg-edge));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.link{border-radius:20px}
+.link:hover{transform:translateY(-2px) scale(1.01);border-color:var(--lg-line);box-shadow:var(--lg-shadow),0 20px 40px -24px rgba(236,52,66,.45)}
+.link .ic{border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.card{border-radius:26px}
+.news-card{border-radius:24px}
+.news-card:hover{border-color:var(--lg-line)}
+.manage-cta{border-style:solid;border-radius:20px}
+.manage-cta:hover{border-color:var(--lg-line);background:radial-gradient(220px circle at var(--mx,-300px) var(--my,-300px),var(--lg-spec),transparent 65%),linear-gradient(180deg,rgba(255,155,74,.2),rgba(255,155,74,.05)),var(--lg-fill)}
+.live,.chips li{border-radius:999px}
+.pay li{border-style:solid;border-radius:999px}
+.ib{border-radius:12px}
+.btn2{box-shadow:var(--lg-shadow)}
+.btn2.primary{background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,0) 52%),linear-gradient(135deg,var(--flame-a),var(--flame-b));box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -6px 14px -6px rgba(120,0,20,.4),0 10px 26px -10px rgba(236,52,66,.65)}
+.btn2:active,.link:active,.sewa-cta:active,.manage-cta:active{transform:scale(.98)}
+.fab{background:radial-gradient(160px circle at var(--mx,-300px) var(--my,-300px),var(--lg-spec),transparent 65%),linear-gradient(180deg,var(--lg-top),var(--lg-bot)),var(--lg-fill);color:var(--ink);border:1px solid var(--lg-line)}
+.ed-bar{background:linear-gradient(180deg,var(--lg-top),var(--lg-bot)),var(--lg-fill);-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);border-top-color:var(--lg-line)}
+.le,.sw-msg{border-radius:18px}
+.igrid{border-radius:20px}
+.sw-pair .code{background:var(--lg-well);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.ticker{border-block-color:var(--lg-line)}
+
+/* kartu unggulan & sewa: pinggiran api berputar di atas kaca */
+.link.featured{border:0;padding:13px 15px 13px 13px}
+.sewa-cta{border:0;padding:19.5px}
+.link.featured,.sewa-cta{
+  background:radial-gradient(220px circle at var(--mx,-300px) var(--my,-300px),var(--lg-spec),transparent 65%),linear-gradient(180deg,rgba(255,155,74,.16),rgba(255,155,74,.03) 60%),var(--lg-fill)}
+.link.featured::after,.sewa-cta::after{padding:1.5px;inset:0;
+  background:conic-gradient(from var(--ang),var(--flame-a),var(--flame-b),var(--spark),rgba(255,255,255,.85),var(--flame-a));animation:spin 4s linear infinite}
+.link.featured.rise,.sewa-cta.rise{animation:rise .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms)}
+.sewa-cta{border-radius:26px}
+.sewa-cta .ic,.sewa-cta .go{box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 8px 20px -10px rgba(236,52,66,.7)}
+.sewa-cta:hover{transform:translateY(-2px)}
+
+/* promo api: tetap paling mencolok, ditambah kilau kaca */
+.promo{border-radius:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -20px 40px -24px rgba(120,0,20,.35),0 24px 50px -22px rgba(236,52,66,.7)}
+.promo .btn{background:linear-gradient(180deg,#fff,rgba(255,255,255,.82));box-shadow:inset 0 1px 0 #fff,0 8px 20px -8px rgba(80,10,10,.5)}
+
+/* gambar-gambar dapat sudut lebih lembut */
+.news-img{border-radius:0}
+.guide-row .guide-pg{border-radius:20px}
+.lb-close,.lb-nav{-webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+
+/* isian di halaman admin #edit: sumur kaca */
+input[type=text],input[type=url],input[type=email],input[type=tel],input[type=password],textarea,select{background:var(--lg-well);border-color:var(--lg-line);border-radius:14px}
+
+/* HP: blur lebih ringan supaya tetap lancar */
+@media (max-width:720px){:root{--lg-blur:blur(16px) saturate(170%)}}
+/* tanpa dukungan blur / kurangi transparansi → kartu pekat seperti sebelumnya */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .link,.sewa-cta,.manage-cta,.news-card,.card,.live,.chips li,.fab,.ipick,.igrid,.le,.sw-msg,.btn2:not(.primary),.ib,.pay li,.ed-bar{background:var(--surface)}
+}
+@media (prefers-reduced-transparency:reduce){
+  .link,.sewa-cta,.manage-cta,.news-card,.card,.live,.chips li,.fab,.ipick,.igrid,.le,.sw-msg,.btn2:not(.primary),.ib,.pay li,.ed-bar{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}
+  body::before{display:none}
+}
+@media (prefers-reduced-motion:reduce){body::before,.link.featured::after,.sewa-cta::after{animation:none!important}}
 </style>
 </head>
 <body>
@@ -1587,6 +1689,18 @@ window.addEventListener("hashchange",checkHash);
     if(saved)pendingDraft=ss(function(){return JSON.parse(saved);});
     if(mode==="view")render();
   });
+})();
+
+/* liquid glass: kilau kaca mengikuti kursor / jari */
+(function(){
+  var SEL=".link,.sewa-cta,.manage-cta,.news-card,.card,.fab,.btn2,.ipick,.live,.chips li,.pay li";
+  var last=null,raf=0,ev=null;
+  function paint(){raf=0;if(!ev)return;var t=ev.target&&ev.target.closest?ev.target.closest(SEL):null;
+    if(last&&last!==t){last.style.removeProperty("--mx");last.style.removeProperty("--my");}
+    last=t;if(!t)return;var r=t.getBoundingClientRect();
+    t.style.setProperty("--mx",(ev.clientX-r.left)+"px");t.style.setProperty("--my",(ev.clientY-r.top)+"px");}
+  document.addEventListener("pointermove",function(e){ev=e;if(!raf)raf=requestAnimationFrame(paint);},{passive:true});
+  document.addEventListener("pointerleave",function(){if(last){last.style.removeProperty("--mx");last.style.removeProperty("--my");last=null;}});
 })();
 })();
 </script>
