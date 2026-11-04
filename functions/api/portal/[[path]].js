@@ -7,6 +7,9 @@
 //      POST /api/portal/draft    {tenant, values}   → simpan draf (belum mengubah bot)
 //      POST /api/portal/publish  {tenant, changes}  → LUNCURKAN: host bot menerapkan ke bot penyewa (host_commands)
 //      GET  /api/portal/publish?tenant=ID&id=X      → status peluncuran
+//   DASHBOARD: POST /api/portal/dashboard {tenant, force}      → perintah ke host, lalu GET /api/portal/cmd?tenant=&id=
+//              POST /api/portal/depoweb {tenant, nominal}      → QRIS deposit saldo web Baramarket (lewat host)
+//              POST /api/portal/depoweb-cancel {tenant, ref}    · GET /api/portal/depo?tenant=&ref= (status pembayaran)
 //   GET /api/portal/me · POST /api/portal/logout · POST /api/portal/logout-all · GET /api/portal/config
 //
 // Browser TIDAK pernah menyentuh Firestore langsung: semua lewat fungsi ini dengan service account (rahasia Cloudflare).
@@ -363,7 +366,7 @@ async function routeData(fs, s, url) {
   if (!cat) return fail(503, 'Data pengaturan belum tersedia. Host bot perlu diperbarui ke versi yang mendukung website ini.');
   return json({
     ok: true, catalog: cat, hostAlive: alive,
-    state: st ? { values: st.values || {}, profile: st.profile || {}, updatedAt: Number(st.updatedAt) || 0 } : null,
+    state: st ? { values: st.values || {}, profile: st.profile || {}, features: st.features || null, updatedAt: Number(st.updatedAt) || 0 } : null,
     draft: dr ? { values: dr.values || {}, updatedAt: Number(dr.updatedAt) || 0 } : { values: {}, updatedAt: 0 },
   });
 }
@@ -426,6 +429,55 @@ async function routePublishStatus(fs, s, url) {
   return json({ ok: true, status: c.status, error: c.status === 'error' ? String(c.error || 'Gagal diterapkan') : '', applied: (c.result && c.result.applied) || [] });
 }
 
+/** Perintah portal ke host (dashboard / deposit). Hasil diambil lewat GET /cmd. */
+async function hostCommand(fs, s, tenant, type, payload) {
+  if (!(await hostAlive(fs))) return fail(503, 'Server bot sedang offline atau restart. Coba lagi beberapa menit lagi.');
+  const id = randomId(20);
+  await fs.set(`host_commands/${id}`, { type, phone: tenant, payload, status: 'pending', createdAt: Date.now(), src: 'portal', by: s.phone }, { mustNotExist: true });
+  return json({ ok: true, id });
+}
+async function routeDashboard(fs, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (!(await allow(fs, `dash_${b.tenant}`, 120, HOUR))) return fail(429, 'Terlalu sering memuat dashboard. Coba lagi sebentar lagi.');
+  return hostCommand(fs, s, b.tenant, 'portal_dashboard', { force: Boolean(b.force) });
+}
+async function routeDepoWeb(fs, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  const nominal = Number(b.nominal);
+  if (!Number.isInteger(nominal) || nominal < 1000) return fail(400, 'Nominal minimal Rp 1.000 (angka saja).');
+  if (nominal > 10000000) return fail(400, 'Nominal maksimal Rp 10.000.000 per transaksi.');
+  if (!(await allow(fs, `depo_${b.tenant}`, 12, HOUR))) return fail(429, 'Terlalu banyak permintaan deposit dalam 1 jam. Coba lagi nanti.');
+  return hostCommand(fs, s, b.tenant, 'portal_depoweb', { nominal });
+}
+async function routeDepoCancel(fs, s, req) {
+  const b = await body(req);
+  if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (!/^[A-Za-z0-9_-]{4,80}$/.test(String(b.ref || ''))) return fail(400, 'Ref deposit tidak valid.');
+  return hostCommand(fs, s, b.tenant, 'portal_depoweb_cancel', { ref: String(b.ref) });
+}
+async function routeCmd(fs, s, url) {
+  const tenant = url.searchParams.get('tenant') || '';
+  const id = url.searchParams.get('id') || '';
+  if (!ownsTenant(s, tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (!/^[A-Za-z0-9]{20}$/.test(id)) return fail(400, 'ID tidak valid.');
+  const c = await fs.get(`host_commands/${id}`);
+  if (!c || c.phone !== tenant || c.src !== 'portal' || !/^portal_(dashboard|depoweb|depoweb_cancel)$/.test(String(c.type))) return fail(404, 'Tidak ditemukan.');
+  if (c.status === 'done' || c.status === 'error') await fs.del(`host_commands/${id}`).catch(() => {});   // sekali baca, lalu dibersihkan
+  return json({ ok: true, status: c.status, error: c.status === 'error' ? String(c.error || 'Gagal') : '', result: c.status === 'done' ? c.result || null : null });
+}
+async function routeDepoStatus(fs, s, url) {
+  const tenant = url.searchParams.get('tenant') || '';
+  const ref = url.searchParams.get('ref') || '';
+  if (!ownsTenant(s, tenant)) return fail(403, 'Bot ini bukan milikmu.');
+  if (!/^[A-Za-z0-9_-]{4,80}$/.test(ref)) return fail(400, 'Ref tidak valid.');
+  const d = await fs.get(`portal_depo/${tenant}__${ref}`);
+  if (!d || d.tenant !== tenant) return json({ ok: true, status: 'Menunggu Bayar' });
+  const pick = ['status', 'nominal', 'total', 'expireAt', 'saldoSebelum', 'saldoSesudah', 'kredit', 'message', 'updatedAt'];
+  return json({ ok: true, ...Object.fromEntries(pick.filter((k) => d[k] !== undefined).map((k) => [k, d[k]])) });
+}
+
 async function routeLogoutAll(fs, s) {
   const list = await fs.where('portal_sessions', 'phone', s.phone, 50).catch(() => []);
   await Promise.all(list.map((x) => fs.del(`portal_sessions/${x.id}`).catch(() => {})));
@@ -459,6 +511,11 @@ export async function onRequest(context) {
     if (route === 'publish' && req.method === 'POST') return await routePublish(fs, s, req);
     if (route === 'publish' && req.method === 'GET') return await routePublishStatus(fs, s, url);
     if (route === 'logout-all' && req.method === 'POST') return await routeLogoutAll(fs, s);
+    if (route === 'dashboard' && req.method === 'POST') return await routeDashboard(fs, s, req);
+    if (route === 'depoweb' && req.method === 'POST') return await routeDepoWeb(fs, s, req);
+    if (route === 'depoweb-cancel' && req.method === 'POST') return await routeDepoCancel(fs, s, req);
+    if (route === 'cmd' && req.method === 'GET') return await routeCmd(fs, s, url);
+    if (route === 'depo' && req.method === 'GET') return await routeDepoStatus(fs, s, url);
     return fail(404, 'Tidak ditemukan.');
   } catch (e) {
     if (e && e.status) return fail(e.status, e.message);
