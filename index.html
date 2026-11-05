@@ -237,7 +237,7 @@ body::after{animation:drift 14s ease-in-out infinite}
   background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);max-height:340px;overflow-y:auto}
 .iopt{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 4px;border-radius:10px;border:1px solid transparent;
   background:transparent;color:var(--ink);cursor:pointer;font:600 .68rem/1.2 var(--font-body);text-align:center}
-.iopt .lb{overflow-wrap:anywhere}
+.iopt .olb{overflow-wrap:anywhere}
 .iopt:hover{border-color:var(--line);background:var(--bg)}
 .iopt.on{border-color:var(--accent);background:var(--accent-soft)}
 .iopt.on .ic{background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame)}
@@ -586,6 +586,90 @@ input[type=text],input[type=url],input[type=email],input[type=tel],input[type=pa
   body::before{display:none}
 }
 @media (prefers-reduced-motion:reduce){.link.featured::after,.sewa-cta::after{animation:none!important}}
+
+/* ═══════════ EDITOR #edit (tata letak seperti portal) ═══════════ */
+.edx{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:24px;max-width:1560px;margin:0 auto;
+  padding:24px max(20px,env(safe-area-inset-right,0px)) 120px max(20px,env(safe-area-inset-left,0px));align-items:start}
+.edx-left{min-width:0;display:flex;flex-direction:column;gap:18px}
+.edx-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.edx-head h1{font-family:var(--font-display);font-size:1.5rem;margin:0}
+.edx-head p{margin:4px 0 0;color:var(--muted);font-size:.9rem;max-width:70ch}
+.btn2.sm{padding:8px 14px;font-size:.84rem;text-decoration:none;flex:none}
+.edx-body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}
+.edx-nav{position:sticky;top:20px;display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:24px;border:1px solid var(--lg-line,var(--line));
+  background:linear-gradient(180deg,var(--lg-top,transparent),var(--lg-bot,transparent)),var(--lg-fill,var(--surface));-webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);box-shadow:var(--lg-shadow)}
+.edx-nb{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);font:600 .9rem var(--font-body);
+  padding:9px 10px;border-radius:14px;cursor:pointer;transition:background .15s}
+.edx-nb:hover{background:var(--accent-soft)}
+.edx-nb .ic{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.edx-nb .ic svg{width:17px;height:17px}
+.edx-nb .nl{flex:1;min-width:0}
+.edx-nb .cnt{font-size:.72rem;font-weight:700;min-width:22px;text-align:center;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.edx-nb .cnt.off{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.edx-nb.on{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 6px 16px -10px rgba(0,0,0,.6)}
+.edx-nb.on .ic{background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame)}
+.edx-main{min-width:0;display:flex;flex-direction:column;gap:14px;scroll-margin-top:80px}
+.edx-sechead{display:flex;align-items:center;gap:12px;padding:2px 4px}
+.edx-sechead .ic{width:42px;height:42px;flex:none;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.edx-sechead .ic svg{width:21px;height:21px}
+.edx-sechead h2{font-family:var(--font-display);font-size:1.2rem;margin:0}
+.edx-sechead p{margin:2px 0 0;color:var(--muted);font-size:.86rem}
+.edx-items{display:flex;flex-direction:column;gap:8px}
+.edx-items .le{padding:8px 8px 8px 8px}
+.edx-items .le.open{padding:10px 12px 14px;border-color:var(--accent)}
+.edx-items .le.hot .edx-itoggle .ic{background:linear-gradient(135deg,var(--flame-a),var(--flame-b));color:var(--on-flame)}
+.edx-ihead{gap:6px}
+.edx-itoggle{flex:1;min-width:0;display:flex;align-items:center;gap:12px;border:0;background:transparent;color:var(--ink);cursor:pointer;text-align:left;padding:2px;font:inherit}
+.edx-itoggle .ic{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.edx-itoggle .ic svg{width:19px;height:19px}
+.edx-thumb{width:56px;height:36px;flex:none;border-radius:8px;overflow:hidden;background:var(--bg)}
+.edx-thumb img{width:100%;height:100%;object-fit:cover;object-position:top}
+.edx-itx{flex:1;min-width:0;display:flex;flex-direction:column}
+.edx-itx b{font-size:.94rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edx-itx small{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edx-itoggle .chev{font-size:.76rem;font-weight:700;color:var(--accent);flex:none}
+/* pratinjau */
+.edx-prev{position:sticky;top:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.edx-ptop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.edx-ptop b{display:block;font-size:.92rem}
+.edx-ptop small{color:var(--muted);font-size:.76rem}
+.edx-dev{display:flex;padding:3px;border-radius:999px;background:rgba(0,0,0,.22);border:1px solid var(--line)}
+.edx-dev button{border:0;background:transparent;color:var(--muted);font:700 .8rem var(--font-body);padding:6px 12px;border-radius:999px;cursor:pointer}
+.edx-dev button.on{background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.08));color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.edx-stage{height:calc(100vh - 150px);min-height:480px}
+.edx-stage.hp{display:flex;justify-content:center}
+.edx-stage.hp .edx-screen{width:min(100%,400px);height:100%;border-radius:38px;padding:10px;background:#0b0807;border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.04),0 30px 70px -30px rgba(0,0,0,.9)}
+.edx-stage.hp iframe{width:100%;height:100%;border:0;border-radius:30px;background:var(--bg);display:block}
+.edx-stage.laptop{overflow:hidden;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:#0b0807;box-shadow:0 30px 70px -30px rgba(0,0,0,.9)}
+.edx-stage.laptop .edx-screen{--k:.33;width:1280px;height:calc((100vh - 150px) / var(--k));min-height:calc(480px / var(--k));transform:scale(var(--k));transform-origin:0 0}
+.edx-stage.laptop iframe{width:1280px;height:100%;border:0;display:block;background:var(--bg)}
+.edx .ed-bar .in{max-width:1520px}
+/* layar sedang & kecil */
+@media (max-width:1280px){ .edx{grid-template-columns:minmax(0,1fr) 380px} .edx-body{grid-template-columns:200px minmax(0,1fr)} }
+@media (max-width:1000px){
+  .edx{grid-template-columns:minmax(0,1fr);padding-top:16px}
+  .edx-prev{display:none}
+  .edx-body{grid-template-columns:minmax(0,1fr)}
+  .edx-nav{position:sticky;top:0;z-index:5;flex-direction:row;overflow-x:auto;border-radius:18px;padding:6px;scrollbar-width:none;margin:0 -4px}
+  .edx-nav::-webkit-scrollbar{display:none}
+  .edx-nb{width:auto;flex:none;padding:7px 12px 7px 7px;white-space:nowrap}
+  .edx-nb .ic{width:28px;height:28px}
+  .edx-head{flex-direction:column}
+}
+@media (min-width:1001px){ .edx-fullprev{display:none} }
+@media (max-width:560px){
+  .edx-items .le:not(.open) .tools{display:none}
+  .edx .ed-bar .in{flex-wrap:nowrap;gap:8px}
+  .edx .ed-bar .status{display:none}
+  .edx .ed-bar .btn2{flex:1 1 0;padding:12px 10px;font-size:.86rem;white-space:nowrap}
+  .edx-head h1{font-size:1.3rem}
+}
+/* di dalam pratinjau: animasi masuk tidak diulang setiap ketikan + sorotan bagian yang dipilih */
+html.pv-norise .rise,html.pv-norise .news-card{animation:none}
+html.pv-norise .promo.rise{animation:flow 9s ease infinite}
+@keyframes pvhl{0%{box-shadow:0 0 0 0 rgba(255,155,74,.0)}20%{box-shadow:0 0 0 4px rgba(255,155,74,.85)}100%{box-shadow:0 0 0 4px rgba(255,155,74,0)}}
+.pv-hl{animation:pvhl 1.6s ease-out 1!important;border-radius:20px}
 </style>
 </head>
 <body>
@@ -883,113 +967,140 @@ function checkbox(obj,key,id,label){
 function iconBtn(name,label,fn,disabled,cls){
   return el("button",{type:"button",class:"ib"+(cls?" "+cls:""),"aria-label":label,title:label,disabled:disabled||null,onclick:fn,html:svg(name,UI)});
 }
-function renderEditor(){
-  var d=draft; d.profile=d.profile||{}; d.promo=d.promo||{}; d.links=d.links||[];
-  var w=el("main",{class:"wrap ed"});
-  w.appendChild(el("div",{class:"ed-head"},[el("h1",{text:"Edit halaman"}),el("p",{text:localEdit?(ghToken()?"Ubah isi, cek lewat Pratinjau, lalu tekan Simpan & terbitkan. Website ikut berubah sekitar 1 menit kemudian.":"Ubah isi, cek lewat Pratinjau, lalu simpan. Sambungkan GitHub di bawah supaya Simpan langsung mengubah website."):"Ubah isi lalu tekan Simpan. Pengunjung langsung melihat versi baru."}),
-    localEdit?el("button",{type:"button",class:"btn2",style:"align-self:flex-start;margin-top:6px",onclick:resetDraft},["Mulai ulang dari versi online"]):null]));
-  if(localEdit)w.appendChild(sessionCard(d));
+/* ---------- editor: tata letak seperti portal — menu bagian (kiri) · isian (tengah) · pratinjau langsung (kanan) ---------- */
+var ED_SECTIONS=[
+  {id:"profil",label:"Profil & logo",icon:"user",desc:"Logo, nama toko, slogan, status kecil, dan deskripsi di bagian paling atas.",sel:".hero"},
+  {id:"promo",label:"Kartu promo",icon:"fire",desc:"Kartu oranye mencolok di bawah profil.",sel:".promo"},
+  {id:"sewa",label:"Tombol Sewa Bot",icon:"bot",desc:"Kartu yang membuka halaman pendaftaran sewa bot (#sewa).",sel:".sewa-cta"},
+  {id:"layanan",label:"Layanan",icon:"sparkle",desc:"Tulisan berjalan (Topup Game ✦ Pulsa ✦ …) di bawah profil.",sel:".ticker"},
+  {id:"link",label:"Link",icon:"link",desc:"Tombol-tombol link resmi. Klik salah satu untuk mengedit, atur urutan dengan panah.",sel:".links"},
+  {id:"kabar",label:"Kabar & Promo",icon:"megaphone",desc:"Kartu berita bergambar yang bisa digeser.",sel:".news"},
+  {id:"bayar",label:"Pembayaran & penutup",icon:"wallet",desc:"Daftar metode pembayaran, catatan, dan teks paling bawah.",sel:".pay"},
+  {id:"tema",label:"Tema warna",icon:"star",desc:"Tampilan gelap / terang website.",sel:null},
+  {id:"akun",label:"Akun & login",icon:"key",desc:"Sesi login admin dan penggantian username / password.",sel:null}
+];
+var edSec=ss(function(){return localStorage.getItem("bm-ed-sec");})||"profil";
+var edOpen={};               // link / kabar yang sedang dibuka (id -> true)
+var edDevice=ss(function(){return localStorage.getItem("bm-ed-dev");})||"hp";
+var edRoot=null, edLeft=null, edPrev=null, edFrame=null, edFrameReady=false, edPrevTimer=null, edScrollTo=null;
 
-  // profile
+function edCount(id,d){
+  if(id==="link")return String((d.links||[]).length);
+  if(id==="kabar")return String((d.news||[]).length);
+  if(id==="layanan")return String((d.services||[]).length);
+  if(id==="promo")return d.promo&&d.promo.show===false?"off":"";
+  if(id==="sewa")return d.sewaCta&&d.sewaCta.show===false?"off":"";
+  return "";
+}
+function edCard(title,kids,extra){return el("section",{class:"card"+(extra?" "+extra:"")},[title?el("h2",{text:title}):null].concat(kids));}
+
+function secProfil(d){
   var fileIn=el("input",{type:"file",id:"logo-file",accept:"image/*",hidden:true});
   fileIn.addEventListener("change",function(){var f=fileIn.files&&fileIn.files[0];if(f)loadLogo(f);});
-  w.appendChild(el("section",{class:"card"},[
-    el("h2",{text:"Profil"}),
-    el("div",{class:"logo-row"},[
-      el("div",{class:"avatar"},[el("img",{src:d.profile.logo||"",alt:"Logo saat ini"})]),
-      el("div",{class:"field"},[el("button",{type:"button",class:"btn2",onclick:function(){fileIn.click();}},["Ganti logo"]),
-        el("span",{class:"hint",text:"Bisa PNG, JPG, atau GIF animasi (maks. 4 MB)."})]),fileIn
+  return [
+    edCard("Logo",[
+      el("div",{class:"logo-row"},[
+        el("div",{class:"avatar"},[el("img",{src:d.profile.logo||"",alt:"Logo saat ini"})]),
+        el("div",{class:"field"},[el("button",{type:"button",class:"btn2",onclick:function(){fileIn.click();}},["Ganti logo"]),
+          el("span",{class:"hint",text:"Bisa PNG, JPG, atau GIF animasi (maks. 4 MB)."})]),fileIn
+      ]),
+      checkbox(d.profile,"logoFull","p-full","Logo memenuhi lingkaran (cocok untuk GIF kotak)"),
+      (DEFAULT_LOGO&&d.profile.logo!==DEFAULT_LOGO)?el("button",{type:"button",class:"btn2",style:"align-self:flex-start",onclick:function(){d.profile.logo=DEFAULT_LOGO;touch();render();}},["Pakai logo api bawaan"]):null,
+      bannerField(d.profile)
     ]),
-    checkbox(d.profile,"logoFull","p-full","Logo memenuhi lingkaran (cocok untuk GIF kotak)"),
-    (DEFAULT_LOGO&&d.profile.logo!==DEFAULT_LOGO)?el("button",{type:"button",class:"btn2",style:"align-self:flex-start",onclick:function(){d.profile.logo=DEFAULT_LOGO;touch();render();}},["Pakai logo api bawaan"]):null,
-    bannerField(d.profile),
-    bind(d.profile,"name","p-name","Nama toko"),
-    bind(d.profile,"tagline","p-tag","Slogan singkat"),
-    bind(d.profile,"badge","p-badge","Status kecil di bawah nama",{ph:"Contoh: Bot aktif 24 jam",hint:"Kosongkan kalau tidak mau ditampilkan."}),
-    bind(d.profile,"bio","p-bio","Deskripsi",{area:true}),
-    checkbox(d.profile,"verified","p-ver","Tampilkan centang resmi")
-  ]));
-
-  // promo
-  w.appendChild(el("section",{class:"card"},[
-    el("h2",{text:"Kartu promo"}),
+    edCard("Teks profil",[
+      bind(d.profile,"name","p-name","Nama toko"),
+      bind(d.profile,"tagline","p-tag","Slogan singkat"),
+      bind(d.profile,"badge","p-badge","Status kecil di bawah nama",{ph:"Contoh: Bot aktif 24 jam",hint:"Kosongkan kalau tidak mau ditampilkan."}),
+      bind(d.profile,"bio","p-bio","Deskripsi",{area:true}),
+      checkbox(d.profile,"verified","p-ver","Tampilkan centang resmi")
+    ])
+  ];
+}
+function secPromo(d){
+  return [edCard("",[
     checkbox(d.promo,"show","pr-show","Tampilkan kartu promo"),
     bind(d.promo,"eyebrow","pr-eye","Label kecil",{ph:"Contoh: Promo minggu ini"}),
     bind(d.promo,"title","pr-title","Judul promo"),
     bind(d.promo,"text","pr-text","Isi promo",{area:true}),
     el("div",{class:"row2"},[bind(d.promo,"btnLabel","pr-bl","Tulisan tombol"),bind(d.promo,"btnUrl","pr-bu","Link tombol",{ph:"https://..."})])
-  ]));
-
-  // theme
-  var th=d.theme||"dark";
-  w.appendChild(el("section",{class:"card"},[
-    el("h2",{text:"Tema warna"}),
-    el("div",{class:"choices",role:"radiogroup","aria-label":"Tema warna"},[["dark","Selalu gelap"],["auto","Ikuti HP pengunjung"],["light","Selalu terang"]].map(function(o){
-      var r=el("input",{type:"radio",name:"theme",id:"th-"+o[0],value:o[0]});r.checked=th===o[0];
-      r.addEventListener("change",function(){d.theme=o[0];touch();});
-      return el("label",{class:"check",for:"th-"+o[0]},[r,o[1]]);
-    })),
-    el("span",{class:"hint",text:"Logo dengan tulisan putih paling cocok dengan tema gelap."})
-  ]));
-
-  // services
-  w.appendChild(el("section",{class:"card"},[
-    el("h2",{text:"Layanan"}),
-    bind(d,"services","sv","Daftar layanan",{area:true,rows:4,hint:"Satu layanan per baris.",get:function(v){return (v||[]).join("\n");},set:lines})
-  ]));
-
-  // links
-  var lc=el("section",{class:"card"},[el("h2",{text:"Link ("+d.links.length+")"}),bind(d,"linksLabel","ll","Judul bagian link",{ph:"Link"})]);
+  ])];
+}
+function secSewa(d){
+  d.sewaCta=sewaCta(d);
+  return [edCard("",[
+    el("p",{class:"hint",style:"margin:0",text:"Harga diambil otomatis dari pengaturan sewa di bot."}),
+    checkbox(d.sewaCta,"show","sc-show","Tampilkan kartu Sewa Bot di halaman utama"),
+    bind(d.sewaCta,"eyebrow","sc-eye","Label kecil"),
+    bind(d.sewaCta,"title","sc-title","Judul"),
+    bind(d.sewaCta,"text","sc-text","Keterangan",{area:true,rows:2}),
+    bind(d.sewaCta,"btnLabel","sc-btn","Tulisan tombol"),
+    el("a",{class:"btn2",href:"#sewa",target:"_blank",style:"align-self:flex-start;text-decoration:none"},["Lihat halaman sewa"])
+  ])];
+}
+function secLayanan(d){
+  return [edCard("",[bind(d,"services","sv","Daftar layanan",{area:true,rows:6,hint:"Satu layanan per baris. Tampil sebagai tulisan berjalan.",get:function(v){return (v||[]).join("\n");},set:lines})])];
+}
+function edItemHead(kind,i,total,x,title,sub,iconHtml,list){
+  var open=!!edOpen[x.id];
+  return el("div",{class:"le-top edx-ihead"},[
+    el("button",{type:"button",class:"edx-itoggle","aria-expanded":open?"true":"false",onclick:function(){edOpen[x.id]=!open;render();}},[
+      iconHtml?el("span",{class:"ic",html:iconHtml}):null,
+      el("span",{class:"edx-itx"},[el("b",{text:title||"(belum diberi judul)"}),sub?el("small",{text:sub}):null]),
+      el("span",{class:"chev",text:open?"Tutup":"Edit"})
+    ]),
+    el("span",{class:"tools"},[
+      iconBtn("up","Naikkan",function(){moveIn(list,i,-1);},i===0),
+      iconBtn("down","Turunkan",function(){moveIn(list,i,1);},i===total-1),
+      iconBtn("trash","Hapus "+kind,function(){if(!confirm("Hapus "+kind+" \""+(title||"tanpa judul")+"\"?"))return;list.splice(i,1);touch();render();},false,"del")
+    ])
+  ]);
+}
+function secLink(d){
+  var lc=edCard("",[bind(d,"linksLabel","ll","Judul bagian link",{ph:"Link"})]);
+  var box=el("div",{class:"edx-items"});
   d.links.forEach(function(l,i){
-    var open=openPicker===l.id, pid="l-"+l.id+"-icon";
-    var pick=el("button",{type:"button",class:"ipick",id:pid,"aria-expanded":open?"true":"false",onclick:function(){openPicker=open?null:l.id;render();refocus(pid);}},[
-      el("span",{class:"ic",html:svg(l.icon)}),el("span",{class:"nm",text:ICON_NAMES[l.icon]||"Link lain"}),el("span",{class:"chev",text:open?"Tutup":"Ganti ikon"})]);
-    var grid=open?el("div",{class:"igrid",role:"group","aria-label":"Pilih ikon"},Object.keys(ICON_NAMES).map(function(k){
-      return el("button",{type:"button",class:"iopt"+(k===l.icon?" on":""),"aria-pressed":k===l.icon?"true":"false",title:ICON_NAMES[k],
-        onclick:function(){l.icon=k;openPicker=null;touch();render();refocus(pid);}},[el("span",{class:"ic",html:svg(k)}),el("span",{class:"lb",text:ICON_NAMES[k]})]);
-    })):null;
-    lc.appendChild(el("div",{class:"le"},[
-      el("div",{class:"le-top"},[
-        el("span",{class:"num",text:"Link "+(i+1)}),
-        el("span",{class:"tools"},[
-          iconBtn("up","Naikkan",function(){move(i,-1);},i===0),
-          iconBtn("down","Turunkan",function(){move(i,1);},i===d.links.length-1),
-          iconBtn("trash","Hapus link",function(){d.links.splice(i,1);touch();render();},false,"del")
-        ])
-      ]),
-      bind(l,"title","l-"+l.id+"-t","Judul"),
-      bind(l,"url","l-"+l.id+"-u","Alamat link",{ph:"https://... atau wa.me/62...",hint:"Boleh tanpa https://"}),
-      bind(l,"sub","l-"+l.id+"-s","Keterangan kecil",{ph:"Kosongkan untuk menampilkan alamat link"}),
-      el("div",{class:"field"},[el("label",{for:pid,text:"Ikon"}),pick,grid]),
-      checkbox(l,"featured","l-"+l.id+"-f","Tandai Hot (link disorot dan diberi bingkai api)")
-    ]));
+    var open=!!edOpen[l.id], pid="l-"+l.id+"-icon";
+    var item=el("div",{class:"le"+(open?" open":"")+(l.featured?" hot":"")},[edItemHead("link",i,d.links.length,l,l.title,l.url?host(safeUrl(l.url)||l.url):"belum ada alamat",svg(l.icon),d.links)]);
+    if(open){
+      var pOpen=openPicker===l.id;
+      var pick=el("button",{type:"button",class:"ipick",id:pid,"aria-expanded":pOpen?"true":"false",onclick:function(){openPicker=pOpen?null:l.id;render();refocus(pid);}},[
+        el("span",{class:"ic",html:svg(l.icon)}),el("span",{class:"nm",text:ICON_NAMES[l.icon]||"Link lain"}),el("span",{class:"chev",text:pOpen?"Tutup":"Ganti ikon"})]);
+      var grid=pOpen?el("div",{class:"igrid",role:"group","aria-label":"Pilih ikon"},Object.keys(ICON_NAMES).map(function(k){
+        return el("button",{type:"button",class:"iopt"+(k===l.icon?" on":""),"aria-pressed":k===l.icon?"true":"false",title:ICON_NAMES[k],
+          onclick:function(){l.icon=k;openPicker=null;touch();render();refocus(pid);}},[el("span",{class:"ic",html:svg(k)}),el("span",{class:"olb",text:ICON_NAMES[k]})]);
+      })):null;
+      [bind(l,"title","l-"+l.id+"-t","Judul"),
+       bind(l,"url","l-"+l.id+"-u","Alamat link",{ph:"https://... atau wa.me/62...",hint:"Boleh tanpa https://"}),
+       bind(l,"sub","l-"+l.id+"-s","Keterangan kecil",{ph:"Kosongkan untuk menampilkan alamat link"}),
+       el("div",{class:"field"},[el("label",{for:pid,text:"Ikon"}),pick,grid]),
+       checkbox(l,"featured","l-"+l.id+"-f","Tandai Hot (link disorot dan diberi bingkai api)")].forEach(function(x){item.appendChild(x);});
+    }
+    box.appendChild(item);
   });
-  lc.appendChild(el("button",{type:"button",class:"btn2 add",onclick:function(){var n={id:uid(),title:"",url:"",sub:"",icon:"link",featured:false};d.links.push(n);touch();render();ss(function(){document.getElementById("l-"+n.id+"-t").focus();});}},[el("span",{html:svg("plus",UI)}),"Tambah link"]));
-  w.appendChild(lc);
-
-  // news
+  lc.appendChild(box);
+  lc.appendChild(el("button",{type:"button",class:"btn2 add",onclick:function(){var n={id:uid(),title:"",url:"",sub:"",icon:"link",featured:false};d.links.push(n);edOpen[n.id]=true;touch();render();ss(function(){document.getElementById("l-"+n.id+"-t").focus();});}},[el("span",{html:svg("plus",UI)}),"Tambah link"]));
+  return [lc];
+}
+function secKabar(d){
   d.newsSection=d.newsSection||{show:true,title:"Kabar & Promo Terbaru"}; d.news=d.news||[];
-  var nc=el("section",{class:"card"},[
-    el("h2",{text:"Kabar & Promo ("+d.news.length+")"}),
+  var head=edCard("Judul bagian",[
     checkbox(d.newsSection,"show","ns-show","Tampilkan bagian Kabar & Promo"),
     bind(d.newsSection,"eyebrow","ns-eye","Label kecil",{ph:"Contoh: Update terbaru"}),
     bind(d.newsSection,"title","ns-title","Judul bagian"),
     bind(d.newsSection,"sub","ns-sub","Keterangan bagian",{area:true,rows:2})
   ]);
+  var nc=edCard("Daftar kabar",[]);
+  nc.appendChild(el("button",{type:"button",class:"btn2 add",onclick:function(){var x={id:uid(),image:"",badge:"Terbaru",date:"",title:"",text:"",url:"",linkLabel:""};d.news.unshift(x);edOpen[x.id]=true;touch();render();ss(function(){document.getElementById("n-"+x.id+"-t").focus();});}},[el("span",{html:svg("plus",UI)}),"Tambah kabar (muncul paling depan)"]));
+  var box=el("div",{class:"edx-items"});
   d.news.forEach(function(x,i){
-    var fid="n-"+x.id;
-    var fin=el("input",{type:"file",id:fid+"-file",accept:"image/*",hidden:true});
-    fin.addEventListener("change",function(){var f=fin.files&&fin.files[0];if(f)loadImage(f,{maxW:960,maxH:600,gifMax:2},function(url){x.image=url;touch();render();});});
-    nc.appendChild(el("div",{class:"le"},[
-      el("div",{class:"le-top"},[
-        el("span",{class:"num",text:"Kabar "+(i+1)}),
-        el("span",{class:"tools"},[
-          iconBtn("up","Naikkan",function(){moveIn(d.news,i,-1);},i===0),
-          iconBtn("down","Turunkan",function(){moveIn(d.news,i,1);},i===d.news.length-1),
-          iconBtn("trash","Hapus kabar",function(){d.news.splice(i,1);touch();render();},false,"del")
-        ])
-      ]),
-      el("div",{class:"news-ed-img"},[
+    var fid="n-"+x.id, open=!!edOpen[x.id];
+    var item=el("div",{class:"le"+(open?" open":"")},[edItemHead("kabar",i,d.news.length,x,x.title,[x.badge,x.date].filter(Boolean).join(" · "),x.image?null:svg("image",UI),d.news)]);
+    if(x.image){var th=item.querySelector(".edx-itoggle");th.insertBefore(el("span",{class:"edx-thumb"},[el("img",{src:x.image,alt:""})]),th.firstChild);}
+    if(open){
+      var fin=el("input",{type:"file",id:fid+"-file",accept:"image/*",hidden:true});
+      fin.addEventListener("change",function(){var f=fin.files&&fin.files[0];if(f)loadImage(f,{maxW:960,maxH:600,gifMax:2},function(url){x.image=url;touch();render();});});
+      [el("div",{class:"news-ed-img"},[
         el("div",{class:"thumb"},[x.image?el("img",{src:x.image,alt:"Gambar kabar"}):el("span",{html:svg("image",UI)})]),
         el("div",{class:"field"},[
           el("button",{type:"button",class:"btn2",onclick:function(){fin.click();}},[x.image?"Ganti gambar":"Pilih gambar"]),
@@ -997,50 +1108,110 @@ function renderEditor(){
           el("span",{class:"hint",text:"Ukuran ideal melebar (16:10). Bisa GIF maks. 2 MB."})
         ]),fin
       ]),
-      el("div",{class:"row2"},[
-        bind(x,"badge",fid+"-b","Label",{ph:"Terbaru / Event / Promo"}),
-        bind(x,"date",fid+"-d","Tanggal (opsional)",{ph:"Contoh: 11 Nov 2026"})
-      ]),
+      el("div",{class:"row2"},[bind(x,"badge",fid+"-b","Label",{ph:"Terbaru / Event / Promo"}),bind(x,"date",fid+"-d","Tanggal (opsional)",{ph:"Contoh: 11 Nov 2026"})]),
       bind(x,"title",fid+"-t","Judul kabar"),
       bind(x,"text",fid+"-x","Isi singkat",{area:true,rows:3}),
-      el("div",{class:"row2"},[
-        bind(x,"url",fid+"-u","Link (opsional)",{ph:"https://..."}),
-        bind(x,"linkLabel",fid+"-l","Tulisan link",{ph:"Baca selengkapnya"})
-      ])
-    ]));
+      el("div",{class:"row2"},[bind(x,"url",fid+"-u","Link (opsional)",{ph:"https://..."}),bind(x,"linkLabel",fid+"-l","Tulisan link",{ph:"Baca selengkapnya"})])
+      ].forEach(function(n){item.appendChild(n);});
+    }
+    box.appendChild(item);
   });
-  nc.appendChild(el("button",{type:"button",class:"btn2 add",onclick:function(){var x={id:uid(),image:"",badge:"Terbaru",date:"",title:"",text:"",url:"",linkLabel:""};d.news.unshift(x);touch();render();ss(function(){document.getElementById("n-"+x.id+"-t").focus();});}},[el("span",{html:svg("plus",UI)}),"Tambah kabar (muncul paling depan)"]));
-  w.appendChild(nc);
-
-  // sewa CTA
-  d.sewaCta=sewaCta(d);
-  w.appendChild(el("section",{class:"card"},[
-    el("h2",{text:"Tombol Sewa Bot Topup"}),
-    el("p",{class:"hint",style:"margin:0",text:"Kartu di halaman utama yang membuka halaman pendaftaran sewa (alamat #sewa). Harga diambil otomatis dari pengaturan sewa di bot."}),
-    checkbox(d.sewaCta,"show","sc-show","Tampilkan kartu Sewa Bot di halaman utama"),
-    bind(d.sewaCta,"eyebrow","sc-eye","Label kecil"),
-    bind(d.sewaCta,"title","sc-title","Judul"),
-    bind(d.sewaCta,"text","sc-text","Keterangan",{area:true,rows:2}),
-    bind(d.sewaCta,"btnLabel","sc-btn","Tulisan tombol"),
-    el("a",{class:"btn2",href:"#sewa",target:"_blank",style:"align-self:flex-start;text-decoration:none"},["Lihat halaman sewa"])
-  ]));
-
-  // payments + footer
-  w.appendChild(el("section",{class:"card"},[
-    el("h2",{text:"Pembayaran & penutup"}),
-    bind(d,"payments","pay","Metode pembayaran",{area:true,rows:4,hint:"Satu metode per baris. Nomor rekening sebaiknya tidak ditulis di sini.",get:function(v){return (v||[]).join("\n");},set:lines}),
+  nc.appendChild(box);
+  return [head,nc];
+}
+function secBayar(d){
+  return [edCard("",[
+    bind(d,"payments","pay","Metode pembayaran",{area:true,rows:5,hint:"Satu metode per baris. Nomor rekening sebaiknya tidak ditulis di sini.",get:function(v){return (v||[]).join("\n");},set:lines}),
     bind(d,"payNote","pn","Catatan pembayaran"),
     bind(d,"footer","ft","Teks paling bawah")
-  ]));
-  app.replaceChildren(w);
+  ])];
+}
+function secTema(d){
+  var th=d.theme||"dark";
+  return [edCard("",[
+    el("div",{class:"choices",role:"radiogroup","aria-label":"Tema warna"},[["dark","Selalu gelap"],["auto","Ikuti HP pengunjung"],["light","Selalu terang"]].map(function(o){
+      var r=el("input",{type:"radio",name:"theme",id:"th-"+o[0],value:o[0]});r.checked=th===o[0];
+      r.addEventListener("change",function(){d.theme=o[0];touch();});
+      return el("label",{class:"check",for:"th-"+o[0]},[r,o[1]]);
+    })),
+    el("span",{class:"hint",text:"Logo dengan tulisan putih paling cocok dengan tema gelap."})
+  ])];
+}
+function secAkun(d){
+  return [localEdit?sessionCard(d):edCard("",[el("p",{class:"hint",style:"margin:0",text:"Login diatur oleh halaman ini."})]),
+    localEdit?edCard("Mulai ulang",[el("p",{class:"hint",style:"margin:0",text:"Buang semua perubahan yang belum diterbitkan dan kembali ke isi website yang sedang online."}),
+      el("button",{type:"button",class:"btn2",style:"align-self:flex-start",onclick:function(){if(confirm("Buang semua perubahan yang belum diterbitkan?"))resetDraft();}},["Mulai ulang dari versi online"])]):null];
+}
+var ED_BUILD={profil:secProfil,promo:secPromo,sewa:secSewa,layanan:secLayanan,link:secLink,kabar:secKabar,bayar:secBayar,tema:secTema,akun:secAkun};
+
+function renderEditor(){
+  var d=draft; d.profile=d.profile||{}; d.promo=d.promo||{}; d.links=d.links||[]; d.news=d.news||[];
+  if(!ED_BUILD[edSec])edSec="profil";
+  var cur=ED_SECTIONS.filter(function(s){return s.id===edSec;})[0];
+  // kerangka tetap: panel pratinjau (iframe) TIDAK dibuat ulang setiap kali isian berubah
+  if(!edRoot||!app.contains(edRoot)){
+    edRoot=el("div",{class:"edx"});edLeft=el("div",{class:"edx-left"});edPrev=el("aside",{class:"edx-prev","aria-label":"Pratinjau langsung"});
+    edRoot.appendChild(edLeft);edRoot.appendChild(edPrev);
+    app.replaceChildren(edRoot);
+    edFrame=null;buildPreviewPane();
+  }
+  var nav=el("nav",{class:"edx-nav","aria-label":"Bagian halaman"},ED_SECTIONS.map(function(s){
+    var cnt=edCount(s.id,d);
+    return el("button",{type:"button",class:"edx-nb"+(s.id===edSec?" on":""),"aria-current":s.id===edSec?"true":null,onclick:function(){
+      edSec=s.id;ss(function(){localStorage.setItem("bm-ed-sec",s.id);});edScrollTo=s.sel;render();
+      var m=document.querySelector(".edx-main");if(m&&window.innerWidth<1000)m.scrollIntoView({behavior:"smooth",block:"start"});
+    }},[el("span",{class:"ic",html:svg(s.icon)}),el("span",{class:"nl",text:s.label}),cnt?el("span",{class:"cnt"+(cnt==="off"?" off":""),text:cnt==="off"?"mati":cnt}):null]);
+  }));
+  var head=el("header",{class:"edx-head"},[
+    el("div",null,[el("h1",{text:"Edit halaman"}),el("p",{text:localEdit?(ghToken()?"Pilih bagian di kiri, ubah isinya, lihat hasilnya langsung di pratinjau. Tekan Simpan & terbitkan kalau sudah pas — website berubah ±1 menit kemudian.":"Ubah isi, cek lewat Pratinjau, lalu simpan."):"Ubah isi lalu tekan Simpan."})]),
+    el("a",{class:"btn2 sm",href:"#",onclick:function(e){e.preventDefault();if(confirm("Keluar dari mode edit? Perubahan tetap tersimpan sebagai draf di browser ini."))location.hash="";}},[el("span",{html:svg("left",UI)}),"Ke website"])
+  ]);
+  var main=el("div",{class:"edx-main"},[
+    el("div",{class:"edx-sechead"},[el("span",{class:"ic",html:svg(cur.icon)}),el("div",null,[el("h2",{text:cur.label}),el("p",{text:cur.desc})])])
+  ].concat(ED_BUILD[edSec](d)));
+  edLeft.replaceChildren(head,el("div",{class:"edx-body"},[nav,main]));
 
   var st=el("span",{class:"status"+(status.kind?" "+status.kind:""),role:"status",text:status.text});
-  app.appendChild(el("div",{class:"ed-bar"},[el("div",{class:"in"},[
+  var bar=edRoot.querySelector(".ed-bar");if(bar)bar.remove();
+  edRoot.appendChild(el("div",{class:"ed-bar"},[el("div",{class:"in"},[
     st,
-    localEdit?el("button",{type:"button",class:"btn2",onclick:function(){previewing=true;render();window.scrollTo(0,0);}},["Pratinjau"]):el("button",{type:"button",class:"btn2",disabled:saving||null,onclick:function(){mode="view";draft=null;status={text:"",kind:""};render();}},["Batal"]),
+    localEdit?el("button",{type:"button",class:"btn2 edx-fullprev",onclick:function(){previewing=true;edRoot=null;render();window.scrollTo(0,0);}},["Pratinjau layar penuh"]):el("button",{type:"button",class:"btn2",disabled:saving||null,onclick:function(){mode="view";draft=null;status={text:"",kind:""};edRoot=null;render();}},["Batal"]),
     el("button",{type:"button",class:"btn2 primary",id:"save-btn",disabled:saving||null,onclick:save},[el("span",{html:svg("check",UI)}),saving?"Menyimpan…":(localEdit?(ghToken()?"Simpan & terbitkan":"Simpan & download"):"Simpan")])
   ])]));
+  schedulePreview();
 }
+
+/* ---------- pratinjau langsung (iframe terisolasi; isi dikirim lewat postMessage) ---------- */
+function buildPreviewPane(){
+  var dev=el("div",{class:"edx-dev",role:"tablist","aria-label":"Ukuran pratinjau"},[["hp","HP"],["laptop","Laptop"]].map(function(o){
+    return el("button",{type:"button",role:"tab",class:o[0]===edDevice?"on":"","aria-selected":o[0]===edDevice?"true":"false",onclick:function(){edDevice=o[0];ss(function(){localStorage.setItem("bm-ed-dev",o[0]);});buildPreviewPane();}},[o[1]]);
+  }));
+  var frame=edFrame;
+  if(!frame){
+    frame=edFrame=el("iframe",{title:"Pratinjau website",sandbox:"allow-scripts allow-popups",loading:"eager"});
+    edFrameReady=false;
+    frame.addEventListener("load",function(){edFrameReady=true;postPreview();});
+    frame.srcdoc=buildPreviewDoc(normalize(draft));
+  }
+  var stage=el("div",{class:"edx-stage "+edDevice},[el("div",{class:"edx-screen"},[frame])]);
+  edPrev.replaceChildren(el("div",{class:"edx-ptop"},[el("div",null,[el("b",{text:"Pratinjau langsung"}),el("small",{text:"Belum terlihat pengunjung sampai diterbitkan"})]),dev]),stage);
+  fitLaptop();
+}
+function fitLaptop(){
+  if(!edPrev)return;var st=edPrev.querySelector(".edx-stage.laptop .edx-screen");if(!st)return;
+  var w=edPrev.clientWidth-4, k=Math.min(1,w/1280);st.style.setProperty("--k",k);
+}
+addEventListener("resize",function(){fitLaptop();});
+function buildPreviewDoc(s){
+  return buildStandalone(s).replace("<html lang=\"id\"","<html lang=\"id\" data-preview=\"1\"");
+}
+function schedulePreview(){clearTimeout(edPrevTimer);edPrevTimer=setTimeout(postPreview,280);}
+function postPreview(){
+  if(!edFrame||!edFrameReady||!draft||!edFrame.contentWindow)return;
+  ss(function(){edFrame.contentWindow.postMessage({bmPreview:1,state:normalize(draft),scroll:edScrollTo},"*");});
+  edScrollTo=null;
+}
+
 function bannerField(pr){
   var fin=el("input",{type:"file",id:"banner-file",accept:"image/*",hidden:true});
   fin.addEventListener("change",function(){var f=fin.files&&fin.files[0];if(f)loadImage(f,{maxW:1000,maxH:500,gifMax:4},function(url){pr.banner=url;if(pr.bannerHideText==null)pr.bannerHideText=true;touch();render();});});
@@ -1169,6 +1340,7 @@ function embers(){
 embers();
 
 function render(){
+  if(!(mode==="edit"&&draft&&!previewing))edRoot=null;
   if(mode==="sewa"){renderSewa();return;}
   if(mode==="login"){renderLogin();return;}
   if(mode==="edit"&&draft&&previewing){renderPreview();return;}
@@ -1184,6 +1356,7 @@ function renderPreview(){
   ])]));
 }
 function touch(){
+  if(mode==="edit")schedulePreview();
   if(!localEdit)return;
   clearTimeout(saveTimer);
   saveTimer=setTimeout(function(){ss(function(){localStorage.setItem(LOCAL_KEY,JSON.stringify(draft));});},400);
@@ -1689,7 +1862,15 @@ function loadRemote(){
   }).catch(function(){});
   return Promise.race([f,new Promise(function(res){setTimeout(res,2500);})]);
 }
-Promise.all([loadRemote(),probeServer()]).then(function(){render();checkHash();});
+var PREVIEW=document.documentElement.hasAttribute("data-preview");   // dimuat di dalam pratinjau editor #edit
+if(PREVIEW){
+  render();setTimeout(function(){document.documentElement.classList.add("pv-norise");},900);
+  window.addEventListener("message",function(e){
+    var m=e.data;if(e.source!==window.parent||!m||!m.bmPreview||!m.state)return;
+    state=m.state;if(mode!=="sewa")mode="view";render();
+    if(m.scroll){var t=document.querySelector(m.scroll);if(t){t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.remove("pv-hl");void t.offsetWidth;t.classList.add("pv-hl");}}
+  });
+} else Promise.all([loadRemote(),probeServer()]).then(function(){render();checkHash();});
 
 function checkHash(){
   if(inClaude)return;
