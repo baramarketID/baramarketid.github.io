@@ -653,6 +653,7 @@
       return ({ __bot: renderBot, __profit: renderProfit, __users: renderUsers, __hist: renderHist, __banner: renderBanner, __saluran: renderSaluran, __digi: renderDigi, __bara: renderBara, __ppob: renderPpob, __help: renderHelp })[S.group]();
     }
     const g = S.cat.groups.find((x) => x.id === S.group) || {};
+    if (!S.q.trim() && items().some((i) => i.g === g.id && i.btn)) return renderBtnSets(g);   // Nama Tombol: per kelompok
     const list = visibleItems();
     const head = S.q.trim()
       ? h('div', { class: 'ghead' }, [h('h2', { text: `Hasil pencarian "${S.q.trim()}"` }), h('p', { text: `${list.length} pengaturan ditemukan.` })])
@@ -662,6 +663,97 @@
     const sel = list.find((x) => x.key === S.sel) || (S.q.trim() ? null : list[0]);
     return [head, S.group === 'grup' && !S.q.trim() ? welcomePanel() : null, grid, sel ? renderEditor(sel) : h('div', { class: 'empty' }, [I('eye'), h('h3', { text: 'Pilih salah satu' }), h('p', { text: 'Klik pengaturan di atas untuk mulai mengedit.' })])];
   }
+  // ───────────────────────── NAMA TOMBOL: diatur per kelompok (satu layar = semua tombolnya) ─────────────────────────
+  function btnSetsOf(gid) {
+    const map = new Map();
+    items().filter((i) => i.g === gid && i.btn).forEach((i) => {
+      const st = i.btn.set || { id: i.key, label: i.label, desc: i.where, order: 999 };
+      if (!map.has(st.id)) map.set(st.id, { ...st, items: [] });
+      map.get(st.id).items.push(i);
+    });
+    const sets = [...map.values()].sort((a, b) => (a.order || 0) - (b.order || 0));
+    sets.forEach((x) => x.items.sort((a, b) => ((a.btn.set && a.btn.set.pos) || 0) - ((b.btn.set && b.btn.set.pos) || 0)));
+    return sets;
+  }
+  function setStatusOf(st) {
+    const all = st.items.map(statusOf);
+    return all.includes('err') ? 'err' : all.includes('draft') ? 'draft' : all.includes('custom') ? 'custom' : 'def';
+  }
+  function setSummary(st) { const n = st.items.length; return `${n} tombol · ${st.items.slice(0, 4).map((it) => btnText(it.def)).join(' · ')}${n > 4 ? ' …' : ''}`; }
+  function renderBtnSets(g) {
+    const sets = btnSetsOf(g.id);
+    S.selSet = S.selSet || {};
+    const cur = sets.find((x) => x.id === S.selSet[g.id]) || sets[0];
+    const head = h('div', { class: 'ghead' }, [h('h2', { text: g.label }), h('p', { text: g.desc })]);
+    const grid = h('div', { class: 'items', id: 'items' }, sets.map((st, i) => {
+      const ss = setStatusOf(st);
+      return h('button', { class: `item${st === cur ? ' on' : ''}`, type: 'button', 'data-set': st.id, style: `animation-delay:${Math.min(i, 12) * 25}ms`, onclick: () => {
+        S.selSet[g.id] = st.id; refreshMain();
+        const ed = $('#editor'); if (ed && window.innerWidth < 1060) ed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } }, [h('span', { class: 'it' }, [h('b', { text: st.label }), h('span', { class: `chip ${ss}`, text: STATUS_LABEL[ss] })]), h('small', { text: setSummary(st) })]);
+    }));
+    return [head, grid, cur ? renderBtnSetEditor(cur) : null];
+  }
+  function renderBtnSetEditor(st) {
+    const pvWrap = h('div', { id: 'ed-pv' });
+    const fake = { key: `set_${st.id}`, def: '', label: st.label, btn: { trig: st.trig || st.items[0].btn.trig, sib: st.items.map((i) => i.def) } };
+    const refreshCardSet = () => {
+      const card = document.querySelector(`.item[data-set="${st.id}"]`); if (!card) return;
+      const c = card.querySelector('.chip'), sm = card.querySelector('small'), ss = setStatusOf(st);
+      if (c) { c.className = `chip ${ss}`; c.textContent = STATUS_LABEL[ss]; }
+      if (sm) sm.textContent = setSummary(st);
+    };
+    const updatePv = () => { pvWrap.textContent = ''; const live = S.pv === 'live'; pvWrap.appendChild(waPhone(fake, live ? previewLive(fake) : previewOf(fake, ''), live)); refreshCardSet(); refreshSide(); renderDock(); };
+    const rows = st.items.map((it) => {
+      const inp = h('input', { class: 'ta', type: 'text', value: editText(it), maxlength: String(it.max + 20), 'aria-label': `Tulisan tombol ${it.def}`, spellcheck: 'false' });
+      const cnt = h('span', { class: 'counter' }), probs = h('div', { class: 'probs' });
+      const upd = () => {
+        const v = inp.value, len = [...v].length;
+        cnt.textContent = `${len}/${it.max}`; cnt.className = `counter${len > it.max ? ' bad' : ''}`;
+        const pr = problems(it, v); probs.textContent = '';
+        pr.errors.forEach((e) => probs.appendChild(msg('err', e)));
+        inp.classList.toggle('bad', pr.errors.length > 0);
+      };
+      inp.addEventListener('input', () => { onEdit(it, inp.value); upd(); updatePv(); });
+      const reset = h('button', { class: 'btn sm ghost', type: 'button', title: 'Kembalikan bawaan', 'aria-label': `Kembalikan bawaan ${it.def}`, onclick: () => {
+        if (liveCustom(it) !== null) S.draft[it.key] = null; else delete S.draft[it.key];
+        inp.value = it.def; scheduleSave(); upd(); updatePv();
+      } }, I('undo'));
+      upd();
+      return h('div', { class: 'btnrow' }, [
+        h('div', { class: 'bl' }, [h('b', { text: it.def }), h('small', { text: it.where })]),
+        h('div', { class: 'bi' }, [inp, cnt, reset]),
+        probs,
+      ]);
+    });
+    const pvTabs = h('div', { class: 'pv-tabs', role: 'tablist' }, [
+      h('button', { type: 'button', role: 'tab', class: S.pv === 'new' ? 'on' : '', 'aria-selected': String(S.pv === 'new'), onclick: () => { S.pv = 'new'; refreshMain(); } }, 'Nama baru'),
+      h('button', { type: 'button', role: 'tab', class: S.pv === 'live' ? 'on' : '', 'aria-selected': String(S.pv === 'live'), onclick: () => { S.pv = 'live'; refreshMain(); } }, 'Di bot sekarang'),
+    ]);
+    const resetAll = h('button', { class: 'btn sm', type: 'button', onclick: () => {
+      st.items.forEach((it) => { if (liveCustom(it) !== null) S.draft[it.key] = null; else delete S.draft[it.key]; });
+      scheduleSave(); refreshMain(); toast(`Semua tombol "${st.label}" dikembalikan ke bawaan (belum diluncurkan).`);
+    } }, [I('undo'), 'Kembalikan semua bawaan']);
+    const ed = h('section', { class: 'editor', id: 'editor', 'aria-label': `Nama tombol ${st.label}` }, [
+      h('div', { class: 'ed-head' }, [h('div', { class: 'tt' }, [h('h3', { text: `Tombol ${st.label}` }), h('p', { text: st.desc || '' })])]),
+      h('div', { class: 'ed-body btnset' }, [
+        h('div', { class: 'ed-left' }, [
+          h('div', { class: 'lbl' }, [h('span', { text: 'Tulisan tombol · fungsinya tetap sama' }), h('span', { class: 'hint', text: `${st.items.length} tombol` })]),
+          ...rows,
+          h('div', { class: 'row' }, [resetAll]),
+          h('p', { class: 'hint', text: 'Boleh pakai emoji. Maksimal 30 karakter, sebaiknya ≤ 20 supaya tidak terpotong di HP. Kosongkan lalu tekan ↺ untuk kembali ke tulisan bawaan.' }),
+        ]),
+        h('div', { class: 'ed-right' }, [
+          h('div', { class: 'lbl' }, [h('span', { text: 'Pratinjau WhatsApp' }), pvTabs]),
+          pvWrap,
+          h('p', { class: 'pv-note', text: 'Pesan di pratinjau hanya contoh. Tombol tampil dengan nama yang sedang kamu ketik.' }),
+        ]),
+      ]),
+    ]);
+    updatePv();
+    return ed;
+  }
+
   /** Saklar welcome / left untuk SEMUA grup (di halaman wording "Pesan di Grup"). */
   function welcomePanel() {
     const v = V('__guard');
@@ -690,7 +782,8 @@
       h('p', { class: 'hint', text: 'Teksnya diatur di bawah (Sambutan member baru & Pesan member keluar). Admin grup tetap bisa menyalakan / mematikan per grup: ketik welcome on/off atau left on/off di grup itu. Penjaga lain (antilink, antilink2, antispam, dll.) diatur per grup lewat WhatsApp — ketik menuotomatis.' }),
     ]);
   }
-  function refreshMain() { const m = $('#main'); if (!m) return; keepScroll(() => { m.textContent = ''; add(m, renderMain()); }); refreshSide(); }
+  /** Perbarui isi halaman yang sama (tanpa animasi masuk lagi, jadi tidak terasa seperti dimuat ulang). */
+  function refreshMain() { const m = $('#main'); if (!m) return; m.classList.add('norise'); keepScroll(() => { m.textContent = ''; add(m, renderMain()); }); refreshSide(); }
   function itemCard(it, i) {
     const st = statusOf(it);
     return h('button', { class: `item${it.key === S.sel ? ' on' : ''}`, type: 'button', 'data-k': it.key, style: `animation-delay:${Math.min(i, 12) * 25}ms`, onclick: () => {
@@ -1915,14 +2008,16 @@
   }
 
   // ───────────────────────── dok luncurkan ─────────────────────────
+  let dockWas = false;   // dok sudah tampil → jangan diulang animasinya setiap ketikan / klik
   function renderDock() {
     const slot = $('#dock-slot'); if (!slot) return;
     const ch = changedItems();
     const errs = ch.filter((it) => problems(it, editText(it)).errors.length);
     slot.textContent = '';
-    if (!ch.length && S.saveState !== 'error') return;
+    if (!ch.length && S.saveState !== 'error') { dockWas = false; return; }
+    const still = dockWas; dockWas = true;
     const save = S.saveState === 'saving' || S.saveState === 'pending' ? 'Menyimpan draf…' : S.saveState === 'error' ? 'Draf gagal disimpan — cek koneksi' : S.saveAt ? `Draf tersimpan · ${new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).format(new Date(S.saveAt))}` : 'Draf tersimpan';
-    slot.appendChild(h('div', { class: 'dock' }, h('div', { class: 'dock-in', role: 'region', 'aria-label': 'Peluncuran' }, [
+    slot.appendChild(h('div', { class: 'dock' }, h('div', { class: `dock-in${still ? ' still' : ''}`, role: 'region', 'aria-label': 'Peluncuran' }, [
       h('div', { class: 'st' }, [
         h('b', { text: ch.length ? `${ch.length} perubahan belum diluncurkan` : 'Draf belum tersimpan' }),
         h('small', { class: errs.length || S.saveState === 'error' ? 'bad' : '', text: errs.length ? `${errs.length} perlu diperbaiki dulu · ${save}` : save }),
