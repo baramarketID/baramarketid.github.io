@@ -5,7 +5,7 @@
   'use strict';
   const API = '/api/portal';
   const MAIN_BOT = '0812-6642-6608';               // nomor bot topup utama Baramarket (pengirim kode OTP)
-  const PAGES_URL = 'https://baramarket.pages.dev/portal/';
+  const PAGES_URL = 'https://baramarket.my.id/portal/';
   const GROUP_URL = 'https://chat.whatsapp.com/DL37Hg46ecsGfXAF4qsaTl';   // grup diskusi penyewa bot topup
   const READMORE = '‎'.repeat(4001);
   const LS_PHONE = 'bmp-phone', LS_BOT = 'bmp-bot';
@@ -78,7 +78,27 @@
   const I = (n) => { const s = document.createElement('span'); s.style.display = 'contents'; s.insertAdjacentHTML('afterbegin', icon(n)); return s.firstChild; };
   const $ = (sel, root) => (root || document).querySelector(sel);
   const app = () => document.getElementById('app');
-  function mount(node) { const a = app(); a.textContent = ''; a.appendChild(node); }
+  /** Posisi geser (layar, menu samping, tabel, jendela) disimpan & dikembalikan saat tampilan digambar ulang,
+   *  supaya tidak loncat ke awal setiap kali tombol ditekan. */
+  const KEEP_SEL = '#groups,.side,.tbl-wrap,.modal-body,.wa-mini,.items,.pitems';
+  function keepScroll(fn) {
+    const x = window.scrollX, y = window.scrollY, saved = {};
+    const key = (n, i) => `${n.id || n.className}|${i}`;
+    document.querySelectorAll(KEEP_SEL).forEach((n, i) => { if (n.scrollLeft || n.scrollTop) saved[key(n, i)] = [n.scrollLeft, n.scrollTop]; });
+    fn();
+    document.querySelectorAll(KEEP_SEL).forEach((n, i) => { const v = saved[key(n, i)]; if (v) { n.scrollLeft = v[0]; n.scrollTop = v[1]; } });
+    if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
+  }
+  function mount(node) { keepScroll(() => { const a = app(); a.textContent = ''; a.appendChild(node); }); }
+  /** Pindah ke halaman lain di menu: menu samping tetap di posisinya, isi baru terlihat dari atas. */
+  function goGroup(k, sel) {
+    const changed = S.group !== k || S.q;
+    S.group = k; S.q = ''; if (sel !== undefined) S.sel = sel;
+    renderApp();
+    if (!changed) return;
+    const on = document.querySelector('.gbtn.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const m = $('#main'); if (m && m.getBoundingClientRect().top < 0) m.scrollIntoView({ block: 'start' });
+  }
 
   // ───────────────────────── keadaan ─────────────────────────
   const S = {
@@ -584,12 +604,12 @@
       h('div', { class: 'search' }, [I('search'), q]),
       h('nav', { class: 'groups', id: 'groups', 'aria-label': 'Kelompok pengaturan' }, [h('button', {
         class: `gbtn${S.group === DASH && !S.q ? ' on' : ''}`, type: 'button', 'aria-current': S.group === DASH && !S.q ? 'true' : null,
-        onclick: () => { S.group = DASH; S.q = ''; renderApp(); },
+        onclick: () => goGroup(DASH),
       }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]),
       h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__saluran', '__digi', '__ppob'].filter(viewOn).map(viewBtn),
       h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
         class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
-        onclick: () => { S.group = g.id; S.q = ''; const first = items().find((x) => x.g === g.id); S.sel = first ? first.key : ''; renderApp(); },
+        onclick: () => { const first = items().find((x) => x.g === g.id); goGroup(g.id, first ? first.key : ''); },
       }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)])), h('div', { class: 'gsep', text: 'Bantuan' }), viewBtn('__help')]),
       h('p', { class: 'side-note', text: 'Perubahan tersimpan otomatis sebagai draf. Bot baru berubah setelah kamu menekan Luncurkan.' }),
       h('a', { class: 'side-link', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [I('chat'), 'Grup diskusi penyewa']),
@@ -597,7 +617,7 @@
   }
   function viewBtn(k) {
     const on = S.group === k && !S.q;
-    return h('button', { class: `gbtn${on ? ' on' : ''}`, type: 'button', 'aria-current': on ? 'true' : null, onclick: () => { S.group = k; S.q = ''; renderApp(); } }, [h('span', { class: 'gi', icon: VIEWS[k].icon }), h('span', { class: 'gl', text: VIEWS[k].label })]);
+    return h('button', { class: `gbtn${on ? ' on' : ''}`, type: 'button', 'aria-current': on ? 'true' : null, onclick: () => goGroup(k) }, [h('span', { class: 'gi', icon: VIEWS[k].icon }), h('span', { class: 'gl', text: VIEWS[k].label })]);
   }
   function refreshSide() {
     const nav = $('#groups'); if (!nav) return;
@@ -655,7 +675,7 @@
       h('p', { class: 'hint', text: 'Teksnya diatur di bawah (Sambutan member baru & Pesan member keluar). Admin grup tetap bisa menyalakan / mematikan per grup: ketik welcome on/off atau left on/off di grup itu. Penjaga lain (antilink, antilink2, antispam, dll.) diatur per grup lewat WhatsApp — ketik menuotomatis.' }),
     ]);
   }
-  function refreshMain() { const m = $('#main'); if (!m) return; m.textContent = ''; add(m, renderMain()); refreshSide(); }
+  function refreshMain() { const m = $('#main'); if (!m) return; keepScroll(() => { m.textContent = ''; add(m, renderMain()); }); refreshSide(); }
   function itemCard(it, i) {
     const st = statusOf(it);
     return h('button', { class: `item${it.key === S.sel ? ' on' : ''}`, type: 'button', 'data-k': it.key, style: `animation-delay:${Math.min(i, 12) * 25}ms`, onclick: () => {
@@ -1961,7 +1981,7 @@
   async function boot() {
     if (/\.github\.io$/i.test(location.hostname)) { location.replace(PAGES_URL); return; }
     const c = await api('/config', null, { quiet: true });
-    if (c._bad || c._status === 404 || c._status === 405) return renderFatal('Halaman Kelola Bot hanya bisa dibuka di alamat resmi: baramarket.pages.dev/portal');
+    if (c._bad || c._status === 404 || c._status === 405) return renderFatal('Halaman Kelola Bot hanya bisa dibuka di alamat resmi: baramarket.my.id/portal');
     if (c._status === 0) return renderFatal(c.error);
     if (!c.ready) return renderFatal('Portal belum diaktifkan oleh admin Baramarket. Coba lagi nanti.');
     const me = await api('/me', null, { quiet: true });
