@@ -586,7 +586,7 @@
         class: `gbtn${S.group === DASH && !S.q ? ' on' : ''}`, type: 'button', 'aria-current': S.group === DASH && !S.q ? 'true' : null,
         onclick: () => { S.group = DASH; S.q = ''; renderApp(); },
       }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]),
-      h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__ppob'].filter(viewOn).map(viewBtn),
+      h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__saluran', '__digi', '__ppob'].filter(viewOn).map(viewBtn),
       h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
         class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
         onclick: () => { S.group = g.id; S.q = ''; const first = items().find((x) => x.g === g.id); S.sel = first ? first.key : ''; renderApp(); },
@@ -615,7 +615,7 @@
     if (S.group === DASH && !S.q.trim()) return renderDash();
     if (VIEWS[S.group] && !S.q.trim()) {
       if (!viewOn(S.group)) { S.group = DASH; return renderDash(); }
-      return ({ __bot: renderBot, __profit: renderProfit, __users: renderUsers, __hist: renderHist, __banner: renderBanner, __ppob: renderPpob, __help: renderHelp })[S.group]();
+      return ({ __bot: renderBot, __profit: renderProfit, __users: renderUsers, __hist: renderHist, __banner: renderBanner, __saluran: renderSaluran, __digi: renderDigi, __ppob: renderPpob, __help: renderHelp })[S.group]();
     }
     const g = S.cat.groups.find((x) => x.id === S.group) || {};
     const list = visibleItems();
@@ -891,6 +891,8 @@
     __users: { label: 'User', icon: 'users', desc: 'Daftar pembeli terdaftar: cari, ubah role, tambah / kurangi saldo.' },
     __hist: { label: 'Riwayat', icon: 'list', desc: 'Transaksi & deposit 7 hari terakhir. Cari pakai nomor, invoice, tujuan, atau produk.' },
     __banner: { label: 'Banner Toko', icon: 'image', desc: 'Gambar yang tampil di atas halaman produk (ketik produk / list).' },
+    __saluran: { label: 'Saluran Testimoni', icon: 'chat', desc: 'Transaksi sukses otomatis diposting ke saluran WhatsApp milikmu (setsaluran / ceksaluran / setteksaluran).' },
+    __digi: { label: 'Layanan Lainnya', icon: 'spark', desc: 'Menu Digiflazz (addcode / listcode / delcode): pilih brand Digiflazz yang tampil di get2, atur type, dan lihat produk + harga.', need: 'digi' },
     __ppob: { label: 'Produk PPOB', icon: 'eye', desc: 'Sembunyikan / tampilkan kategori, layanan, atau produk PPOB di tokomu.', need: 'oke' },
     __help: { label: 'Panduan', icon: 'book', desc: 'Jawaban singkat untuk pertanyaan yang paling sering muncul.' },
   };
@@ -1380,6 +1382,232 @@
     ];
   }
 
+  // ── LAYANAN LAINNYA (Digiflazz): kelola kode menu + cari layanan ──
+  // Data Digiflazz selalu dari cache di bot (diperbarui otomatis tiap 30 menit). Tombol "Perbarui" dijaga
+  // minimal 5 menit sekali di bot, jadi akun Digiflazz tidak kena limit walau tombol diklik berulang.
+  const agoID = (ms) => { if (!ms) return 'belum pernah'; const m = Math.round((Date.now() - ms) / 60000); return m < 1 ? 'baru saja' : m < 60 ? `${m} menit lalu` : `${Math.round(m / 60)} jam lalu`; };
+  function cacheLine(c) {
+    if (!c) return null;
+    const t = c.cooling ? `⏸️ Digiflazz sedang membatasi pengecekan — dijeda ±${c.waitMin} menit. Pembeli tetap dilayani dari data tersimpan.` : `Data Digiflazz: ${c.count} produk · diambil ${agoID(c.at)} · otomatis diperbarui tiap 30 menit.`;
+    return h('p', { class: `hint${c.cooling ? ' warnt' : ''}`, text: t });
+  }
+  function suggestCodeLocal(brand, taken) {
+    const w = String(brand || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+    let c = (w.length > 1 ? w.map((x) => x[0]).join('') : (w[0] || 'kode')).slice(0, 12);
+    if (c.length < 2) c = (w.join('') || 'kode').slice(0, 12);
+    let out = c, i = 2; while (taken.includes(out)) out = `${c}${i++}`.slice(0, 20);
+    return out;
+  }
+  function renderDigi() {
+    const v = V('__digi'); v.tab = v.tab || 'menu';
+    const g = viewGuard('__digi', 'digi.codes');
+    const tabs = h('div', { class: 'pv-tabs', role: 'tablist' }, [['menu', 'Menu saya'], ['cari', 'Cari layanan Digiflazz']].map(([k, l]) => h('button', { type: 'button', role: 'tab', class: v.tab === k ? 'on' : '', onclick: () => { v.tab = k; refreshMain(); } }, l)));
+    const head = viewHead('__digi', [tabs]);
+    if (g) return [head, ...g];
+    const d = v.data;
+    const refreshBtn2 = h('button', { class: 'btn sm', type: 'button', disabled: v.refreshing ? true : null, onclick: digiRefresh }, [v.refreshing ? h('span', { class: 'spin' }) : I('refresh'), v.refreshing ? 'Memperbarui…' : 'Perbarui data Digiflazz']);
+    const top = h('div', { class: 'row between digi-top' }, [cacheLine((V('__digiCat').data && V('__digiCat').data.cache) || d.cache), refreshBtn2]);
+    return [head, d.error ? msg('warn', d.error) : null, top, ...(v.tab === 'menu' ? digiMenu(d) : digiCari())];
+  }
+  async function digiRefresh() {
+    const v = V('__digi'); v.refreshing = true; refreshMain();
+    const r = await callFn('digi.refresh', {}, 60000);
+    v.refreshing = false;
+    if (r.ok) {
+      V('__digiCat').data = r.result;
+      toast(r.result.refreshed ? 'Data Digiflazz diperbarui.' : `Data masih baru (diambil ${agoID(r.result.cache.at)}) — dipakai tanpa memanggil Digiflazz.`);
+      loadView('__digi', 'digi.codes', {}, true);
+    } else toast(r.error, 'err');
+    refreshMain();
+  }
+  function digiMenu(d) {
+    const v = V('__digi');
+    const cats = [];
+    for (const e of d.list) { if (!cats.includes(e.kategori)) cats.push(e.kategori); }
+    const lowInp = h('input', { class: 'input num wide', type: 'number', min: '0', step: '10000', value: String(d.low), 'aria-label': 'Batas peringatan saldo Digiflazz' });
+    const lowRow = h('div', { class: 'setrow' }, [
+      h('div', { class: 'tx' }, [h('b', { text: 'Peringatan saldo Digiflazz menipis' }), h('small', { text: 'Owner dikabari lewat WhatsApp bila saldo Digiflazz di bawah angka ini. 0 = mati.' })]),
+      h('div', { class: 'row' }, [h('span', { class: 'hint', text: 'Rp' }), lowInp, h('button', { class: 'btn sm', type: 'button', onclick: async () => {
+        const n = Math.round(Number(lowInp.value) || 0);
+        const r = await callFn('digi.setLow', { value: n });
+        if (r.ok) { d.low = r.result.low; toast('Batas peringatan disimpan.'); } else toast(r.error, 'err');
+      } }, 'Simpan')]),
+    ]);
+    if (!d.list.length) {
+      return [h('section', { class: 'dsec' }, [h('div', { class: 'empty' }, [I('list'), h('h3', { text: 'Menu Layanan Lainnya masih kosong' }), h('p', { text: 'Buka tab "Cari layanan Digiflazz", pilih brand, lalu tekan Tambah.' }),
+        h('button', { class: 'btn primary', type: 'button', onclick: () => { v.tab = 'cari'; refreshMain(); } }, [I('plus'), 'Cari & tambah layanan'])])]), h('section', { class: 'dsec' }, [lowRow])];
+    }
+    return [
+      h('div', { class: 'tiles' }, [tile2('Brand di menu', String(d.list.length)), tile2('Kategori', String(cats.length)), tile2('Tanpa produk aktif', String(d.list.filter((e) => e.active === 0).length), d.list.some((e) => e.active === 0) ? 'warn' : '')]),
+      ...cats.map((k) => h('section', { class: 'dsec' }, [
+        h('h3', { class: 'dh', text: k }),
+        ...d.list.filter((e) => e.kategori === k).map((e) => h('div', { class: 'setrow digi-row' }, [
+          h('div', { class: 'tx' }, [
+            h('b', null, [e.brand, ' ', h('code', { class: 'kode', text: e.code })]),
+            h('small', { text: `${e.types.length ? `Type: ${e.types.join(', ')}` : 'Semua type'} · ${e.active === null ? 'jumlah produk belum bisa dicek' : e.active ? `${e.active} produk aktif` : '⚠️ tidak ada produk aktif'}` }),
+          ]),
+          h('div', { class: 'row' }, [
+            h('button', { class: 'btn sm', type: 'button', onclick: () => openDigiProducts(e) }, [I('eye'), 'Produk']),
+            h('button', { class: 'btn sm', type: 'button', onclick: () => openDigiEdit(e) }, [I('wand'), 'Ubah']),
+            h('button', { class: 'btn sm ghost danger', type: 'button', 'aria-label': `Hapus ${e.code}`, onclick: () => openModal({ kind: 'confirm', title: `Hapus ${e.brand}?`, text: `Kode ${e.code} dihapus dari menu Layanan Lainnya. Pembeli tidak bisa melihat / order brand ini lagi.`, ok: 'Hapus', danger: true, onOk: async () => {
+              closeModal(); const r = await callFn('digi.remove', { code: e.code });
+              if (r.ok) { V('__digi').data = r.result; V('__digiCat').data = null; toast(`${e.brand} dihapus dari menu.`); } else toast(r.error, 'err');
+              refreshMain();
+            } }) }, I('trash')),
+          ]),
+        ])),
+      ])),
+      h('section', { class: 'dsec' }, [lowRow]),
+    ];
+  }
+  function digiCari() {
+    const v = V('__digiCat');
+    const g = viewGuard('__digiCat', 'digi.catalog');
+    if (g) return g;
+    const d = v.data;
+    const q = (v.q || '').trim().toLowerCase();
+    const search = h('input', { class: 'input', id: 'dg-q', type: 'search', placeholder: 'Cari brand, mis. free fire, telkomsel, dana…', value: v.q || '' });
+    search.addEventListener('input', () => { v.q = search.value; const keep = search.selectionStart; refreshMain(); const s2 = $('#dg-q'); if (s2) { s2.focus(); s2.setSelectionRange(keep, keep); } });
+    const catSel = h('select', { class: 'input', 'aria-label': 'Kategori' }, [h('option', { value: '', text: 'Semua kategori' }), ...d.cats.map((c) => h('option', { value: c.name, text: `${c.name} (${c.brands.length})` }))]);
+    catSel.value = v.cat || ''; catSel.addEventListener('change', () => { v.cat = catSel.value; refreshMain(); });
+    let rows = [];
+    for (const c of d.cats) { if (v.cat && c.name !== v.cat) continue; for (const b of c.brands) if (!q || b.name.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)) rows.push({ c, b }); }
+    const total = rows.length; rows = rows.slice(0, 150);
+    return [h('section', { class: 'dsec' }, [
+      h('div', { class: 'row filters' }, [search, catSel]),
+      rows.length ? h('div', { class: 'digi-list' }, rows.map(({ c, b }) => h('div', { class: 'setrow digi-row' }, [
+        h('div', { class: 'tx' }, [h('b', { text: b.name }), h('small', { text: `${c.name} · ${b.active}/${b.count} produk aktif${b.types.length ? ` · type: ${b.types.slice(0, 6).join(', ')}${b.types.length > 6 ? '…' : ''}` : ''}` })]),
+        h('div', { class: 'row' }, [
+          b.codes.length ? h('span', { class: 'chip custom', text: `✓ di menu (${b.codes.join(', ')})` }) : null,
+          h('button', { class: 'btn sm', type: 'button', onclick: () => openDigiProducts({ kategori: c.name, brand: b.name, types: [] }) }, [I('eye'), 'Produk']),
+          h('button', { class: `btn sm${b.codes.length ? '' : ' primary'}`, type: 'button', onclick: () => {
+            const taken = (V('__digi').data ? V('__digi').data.list : []).map((x) => x.code);
+            openModal({ kind: 'digiForm', mode: 'add', e: { kategori: c.name, brand: b.name, code: suggestCodeLocal(b.name, taken), types: [] }, allTypes: b.types });
+          } }, [I('plus'), 'Tambah']),
+        ]),
+      ]))) : h('p', { class: 'hint', text: 'Tidak ada brand yang cocok.' }),
+      total > rows.length ? h('p', { class: 'hint', text: `Menampilkan 150 dari ${total} brand — persempit pencarian.` }) : null,
+    ])];
+  }
+  async function openDigiEdit(e) {
+    const m = { kind: 'digiForm', mode: 'edit', e: { ...e, types: [...e.types] } };
+    openModal(m);
+    if (V('__digiCat').data) return;
+    m.loadingTypes = true; renderModal();           // pilihan type diambil dari data Digiflazz tersimpan
+    const r = await callFn('digi.catalog');
+    m.loadingTypes = false;
+    if (r.ok) V('__digiCat').data = r.result;
+    if (S.modal === m) renderModal();
+  }
+  function digiFormCard(m) {
+    const e = m.e;
+    const cat = V('__digiCat').data;
+    let allTypes = m.allTypes;
+    if (!allTypes && cat) { const c = cat.cats.find((x) => x.name.toLowerCase() === e.kategori.toLowerCase()); const b = c && c.brands.find((x) => x.name.toUpperCase() === e.brand.toUpperCase()); allTypes = b ? b.types : []; }
+    allTypes = [...new Set([...(allTypes || []), ...e.types])];
+    const code = h('input', { class: 'input', id: 'dg-code', value: e.code, maxlength: '20', autocomplete: 'off', disabled: m.mode === 'edit' ? true : null, 'aria-describedby': 'dg-code-h' });
+    code.addEventListener('input', () => { e.code = code.value.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 20); if (code.value !== e.code) code.value = e.code; });
+    const typeBox = m.loadingTypes ? h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: 'Memuat pilihan type…' })]) : allTypes.length ? h('div', { class: 'typechk' }, allTypes.map((t) => {
+      const cb = h('input', { type: 'checkbox', checked: e.types.includes(t) ? true : null });
+      cb.addEventListener('change', () => { e.types = cb.checked ? [...e.types, t] : e.types.filter((x) => x !== t); });
+      return h('label', { class: 'chk' }, [cb, h('span', { text: t })]);
+    })) : h('p', { class: 'hint', text: 'Brand ini tidak punya pilihan type — semua produk ditampilkan.' });
+    const save = async () => {
+      if (!/^[a-z0-9_-]{1,20}$/.test(e.code)) { m.error = 'Kode 1–20 karakter: huruf kecil, angka, - atau _'; renderModal(); return; }
+      m.busy = true; m.error = ''; renderModal();
+      const r = m.mode === 'add' ? await callFn('digi.add', { kategori: e.kategori, brand: e.brand, code: e.code, types: e.types }) : await callFn('digi.update', { code: e.code, types: e.types });
+      m.busy = false;
+      if (!r.ok) { m.error = r.error; renderModal(); return; }
+      V('__digi').data = { ...V('__digi').data, ...r.result };
+      const cv = V('__digiCat').data; if (cv && m.mode === 'add') for (const c of cv.cats) if (c.name.toLowerCase() === e.kategori.toLowerCase()) for (const b of c.brands) if (b.name.toUpperCase() === e.brand.toUpperCase()) b.codes = [...b.codes, e.code];
+      closeModal(); toast(m.mode === 'add' ? `${e.brand} masuk menu Layanan Lainnya (kode ${e.code}).` : 'Perubahan disimpan.'); refreshMain();
+    };
+    return h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+      h('header', null, [h('h3', { id: 'mt', text: m.mode === 'add' ? 'Tambah ke Layanan Lainnya' : `Ubah ${e.brand}` }), h('p', { text: `${e.kategori} → ${e.brand}` })]),
+      h('div', { class: 'modal-body' }, [
+        m.error ? msg('err', m.error) : null,
+        h('div', { class: 'field' }, [h('label', { for: 'dg-code', text: 'Kode menu' }), code, h('p', { class: 'hint', id: 'dg-code-h', text: m.mode === 'add' ? 'Dipakai pembeli: get2 [kode]. Huruf kecil / angka, maks 20.' : 'Kode tidak bisa diganti — hapus lalu tambah lagi bila perlu.' })]),
+        h('div', { class: 'field' }, [h('span', { class: 'lbl', text: 'Type yang ditampilkan (kosong = semua)' }), typeBox]),
+      ]),
+      h('footer', null, [h('button', { class: 'btn ghost', type: 'button', onclick: closeModal }, 'Batal'), h('button', { class: 'btn primary', type: 'button', disabled: m.busy ? true : null, onclick: save }, [m.busy ? h('span', { class: 'spin' }) : I('check'), m.mode === 'add' ? 'Tambahkan' : 'Simpan'])]),
+    ]);
+  }
+  async function openDigiProducts(e) {
+    const m = { kind: 'digiProducts', e, busy: true }; S.modal = m; renderModal();
+    const r = await callFn('digi.products', { kategori: e.kategori, brand: e.brand, types: e.types || [] });
+    if (S.modal !== m) return;
+    m.busy = false; if (r.ok) m.data = r.result; else m.error = r.error; renderModal();
+  }
+  function digiProductsCard(m) {
+    const e = m.e;
+    let body;
+    if (m.busy) body = [loading('Mengambil produk dari data Digiflazz tersimpan…')];
+    else if (m.error) body = [msg('err', m.error)];
+    else if (!m.data.rows.length) body = [h('p', { class: 'hint', text: 'Tidak ada produk untuk brand / type ini.' })];
+    else {
+      const roles = m.data.roles.filter((r) => r !== 'owner');
+      body = [h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, [
+        h('thead', null, h('tr', null, ['Produk', 'Kode', 'Modal', ...roles.map((r) => r[0].toUpperCase() + r.slice(1)), 'Status'].map((x) => h('th', { text: x })))),
+        h('tbody', null, m.data.rows.map((p) => h('tr', { class: p.aktif ? '' : 'off' }, [h('td', { class: 'wrap', text: `${p.nama}${p.type ? ` · ${p.type}` : ''}` }), h('td', null, h('code', { class: 'kode', text: p.sku })), h('td', { text: rpx(p.modal) }), ...roles.map((r) => h('td', { text: rpx(p.harga[r]) })),
+          h('td', null, h('span', { class: `chip ${p.aktif ? (p.cutoff ? 'draft' : 'custom') : 'err'}`, text: p.aktif ? (p.cutoff ? 'Cut-off' : 'Aktif') : 'Gangguan' }))]))),
+      ])), h('p', { class: 'hint', text: 'Harga jual = modal + profit Layanan Lainnya per role (atur di Profit per Role → Layanan Lainnya). Pembeli order: TP2 [kode produk] [tujuan].' })];
+    }
+    return h('div', { class: 'modal-card wide', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt' }, [
+      h('header', null, [h('h3', { id: 'mt', text: `Produk ${e.brand}` }), h('p', { text: `${e.kategori}${e.types && e.types.length ? ` · type ${e.types.join(', ')}` : ''}${m.data ? ` · ${m.data.rows.length} produk` : ''}` })]),
+      h('div', { class: 'modal-body' }, body),
+      h('footer', null, [h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Tutup')]),
+    ]);
+  }
+
+  // ── SALURAN TESTIMONI (setsaluran / ceksaluran / setteksaluran) ──
+  function renderSaluran() {
+    const v = V('__saluran');
+    const g = viewGuard('__saluran', 'saluran.get');
+    const head = viewHead('__saluran');
+    if (g) return [head, ...g];
+    const d = v.data;
+    const inp = h('input', { class: 'input', id: 'sl-link', type: 'url', inputmode: 'url', placeholder: 'https://whatsapp.com/channel/0029Va…', value: v.edit !== undefined ? v.edit : d.link });
+    inp.addEventListener('input', () => { v.edit = inp.value; });
+    const st = v.status || d.status;
+    const run = async (fn, args, okMsg) => {
+      v.busy = fn; refreshMain();
+      const r = await callFn(fn, args || {}, 40000);
+      v.busy = '';
+      if (r.ok) { v.data = r.result; v.status = r.result.status || null; v.edit = undefined; if (okMsg) toast(okMsg); } else toast(r.error, 'err');
+      refreshMain();
+    };
+    const save = () => {
+      const l = String(inp.value || '').trim();
+      if (!/^https:\/\/(www\.)?whatsapp\.com\/channel\/[\w-]{10,60}\/?$/i.test(l) && !/^\d{8,30}@newsletter$/.test(l)) { toast('Tempel link saluran, contoh: https://whatsapp.com/channel/0029Va…', 'err'); inp.focus(); return; }
+      run('saluran.set', { link: l }, 'Saluran testimoni disimpan.');
+    };
+    const spin = (k, label, icon) => [v.busy === k ? h('span', { class: 'spin' }) : I(icon), label];
+    const stBox = st ? msg(st.ok ? 'ok' : st.ok === null ? 'info' : 'warn', String(st.text || '').replace(/\*/g, '')) : null;
+    const goWording = () => { const it = items().find((x) => x.key === 'testiText'); if (!it) return; S.group = it.g; S.q = ''; S.sel = it.key; renderApp(); };
+    return [
+      head,
+      h('div', { class: 'dpair' }, [
+        h('section', { class: 'dsec' }, [
+          h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Link saluran' }), d.link ? h('span', { class: 'chip custom', text: '● Terpasang' }) : h('span', { class: 'chip def', text: 'Belum diatur' })]),
+          h('div', { class: 'field' }, [h('label', { for: 'sl-link', text: 'Link saluran WhatsApp milik tokomu' }), inp,
+            h('p', { class: 'hint', text: 'Buka saluranmu di WhatsApp → Info saluran → Salin tautan. Lalu jadikan NOMOR BOT admin saluran (Info saluran → Undang admin) dan terima undangannya dari WhatsApp nomor bot.' })]),
+          stBox,
+          h('div', { class: 'row' }, [
+            h('button', { class: 'btn primary', type: 'button', disabled: v.busy ? true : null, onclick: save }, spin('saluran.set', 'Simpan link', 'check')),
+            d.link ? h('button', { class: 'btn', type: 'button', disabled: v.busy ? true : null, onclick: () => run('saluran.check', { send: true }, '') }, spin('saluran.check', 'Cek & kirim pesan tes', 'chat')) : null,
+            d.link ? h('button', { class: 'btn ghost danger', type: 'button', disabled: v.busy ? true : null, onclick: () => openModal({ kind: 'confirm', title: 'Matikan saluran testimoni?', text: 'Transaksi sukses tidak diposting ke saluran lagi. Link bisa dipasang kembali kapan saja.', ok: 'Matikan', danger: true, onOk: () => { closeModal(); run('saluran.reset', {}, 'Saluran testimoni dimatikan.'); } }) }, [I('x'), 'Matikan']) : null,
+          ]),
+        ]),
+        h('section', { class: 'dsec' }, [
+          h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Contoh postingan' }), h('span', { class: `chip ${d.customText ? 'custom' : 'def'}`, text: d.customText ? 'Wording kustom' : 'Wording bawaan' })]),
+          h('div', { class: 'wa-mini' }, waFormat(d.sample)),
+          h('p', { class: 'hint', text: 'Setiap transaksi sukses otomatis diposting seperti ini. Data pembeli disamarkan (nickname, target & invoice).' }),
+          h('div', null, h('button', { class: 'btn', type: 'button', onclick: goWording }, [I('wand'), 'Ubah wording penutup'])),
+        ]),
+      ]),
+    ];
+  }
+
   // ── 11. PANDUAN ──
   const FAQ = [
     ['Cara menyambungkan (pairing) bot', 'Buka menu Bot & Sewa → isi nomor WhatsApp untuk bot (bukan nomor owner) → Minta kode pairing. Di HP nomor bot: WhatsApp → Perangkat tertaut → Tautkan perangkat → "Tautkan dengan nomor telepon saja" → masukkan kode 8 huruf. Kode berlaku singkat; kalau gagal, minta kode lagi.'],
@@ -1631,6 +1859,10 @@
       card = userCard(m);
     } else if (m.kind === 'hist') {
       card = histCard(m);
+    } else if (m.kind === 'digiForm') {
+      card = digiFormCard(m);
+    } else if (m.kind === 'digiProducts') {
+      card = digiProductsCard(m);
     } else if (m.kind === 'progress') {
       const step = (i, label) => h('div', { class: m.step > i ? 'done' : m.step === i ? 'on' : '' }, [h('span', { class: 'ck' }, m.step > i ? I('check') : null), label]);
       card = h('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'mt', 'aria-busy': String(m.step < 3) }, [
