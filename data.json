@@ -27,6 +27,14 @@
  "linksLabel": "Link resmi",
  "links": [
   {
+   "id": "l9",
+   "title": "Website",
+   "url": "https://baramarket.id",
+   "sub": "baramarket.id",
+   "icon": "globe",
+   "featured": false
+  },
+  {
    "id": "l1",
    "title": "Order otomatis via Bot Telegram",
    "url": "https://t.me/baramarket_bot",
@@ -35,11 +43,19 @@
    "featured": true
   },
   {
-   "id": "l2",
-   "title": "Chat CS via WhatsApp",
-   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya",
-   "sub": "Tanya produk, kendala order, konfirmasi bayar",
-   "icon": "headset",
+   "id": "l5",
+   "title": "Sewa Bot Topup & Bot Store",
+   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya%20sewa%20bot",
+   "sub": "Punya bot jualan sendiri, tinggal pakai",
+   "icon": "bag",
+   "featured": true
+  },
+  {
+   "id": "l10",
+   "title": "Aplikasi Premium",
+   "url": "https://docs.google.com/spreadsheets/d/1ArDJyyUNo_bLuK5S4weYjCUQ7IfzLo8Cg2aVcg_NOt4/edit?gid=0#gid=0",
+   "sub": "Data sheet stok aplikasi premium",
+   "icon": "shield",
    "featured": false
   },
   {
@@ -59,12 +75,12 @@
    "featured": false
   },
   {
-   "id": "l5",
-   "title": "Sewa Bot Topup & Bot Store",
-   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya%20sewa%20bot",
-   "sub": "Punya bot jualan sendiri, tinggal pakai",
-   "icon": "bag",
-   "featured": true
+   "id": "l2",
+   "title": "Chat CS via WhatsApp",
+   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya",
+   "sub": "Tanya produk, kendala order, konfirmasi bayar",
+   "icon": "headset",
+   "featured": false
   },
   {
    "id": "l6",
@@ -88,22 +104,6 @@
    "url": "https://t.me/Csbaramarket",
    "sub": "@Csbaramarket",
    "icon": "send",
-   "featured": false
-  },
-  {
-   "id": "l9",
-   "title": "Website",
-   "url": "https://baramarket.id",
-   "sub": "baramarket.id",
-   "icon": "globe",
-   "featured": false
-  },
-  {
-   "id": "l10",
-   "title": "Lynk.id",
-   "url": "https://lynk.id/baramarket",
-   "sub": "lynk.id/baramarket",
-   "icon": "link",
    "featured": false
   }
  ],
