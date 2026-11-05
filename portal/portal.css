@@ -628,3 +628,6 @@ code.kode{font-family:var(--font-mono);font-size:.76rem;padding:2px 7px;border-r
 *,*::before,*::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
 .top{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01)),rgba(18,12,11,.92)}
 .modal{background:rgba(6,4,3,.72)}
+/* pratinjau Nama Tombol: tombol yang sedang diatur disorot */
+.wa-btns span.hl{box-shadow:0 0 0 2px var(--accent),0 0 18px -4px rgba(255,155,74,.7);color:#fff;font-weight:700}
+.prow.static{cursor:default}
