@@ -887,6 +887,80 @@ html.pv-norise .rise,html.pv-norise .news-card{animation:none}
 html.pv-norise .promo.rise{animation:flow 9s ease infinite}
 @keyframes pvhl{0%{box-shadow:0 0 0 0 rgba(255,155,74,.0)}20%{box-shadow:0 0 0 4px rgba(255,155,74,.85)}100%{box-shadow:0 0 0 4px rgba(255,155,74,0)}}
 .pv-hl{animation:pvhl 1.6s ease-out 1!important;border-radius:20px}
+
+/* ═══════════ GAYA DATAR: satu warna, tanpa gradasi (tombol, teks, ikon, kartu) ═══════════
+   Warna utama satu: oranye api. Efek gerak hanya saat dibutuhkan (kursor lewat / ditekan). */
+:root{--solid:#F26B1D;--solid-h:#FF7E2E;--card:#211A18;--card-h:#2A211D;--card-on:#2E231F}
+:root[data-theme="light"]{--card:#FFFFFF;--card-h:#FFF4EC;--card-on:#FFEBDD}
+/* teks: tanpa gradasi */
+.name .nm{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:var(--ink)!important;-webkit-text-fill-color:currentColor;animation:none!important}
+.sw-price .v{background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;color:var(--solid)!important;-webkit-text-fill-color:currentColor}
+/* tombol utama & ikon: satu warna */
+.btn2.primary,.ow-b.pri,.sewa-cta .go{background:var(--solid)!important;color:#fff!important;box-shadow:none!important;filter:none!important}
+.link.featured .ic,.sewa-cta .ic,.iopt.on .ic,.login-ic,.sw-steps .n,.sw-steps li.cur .n,.edx-nb.on .ic,.edx-sechead .ic,.edx-items .le.hot .edx-itoggle .ic{background:var(--solid)!important;color:#fff!important;box-shadow:none!important}
+.link.featured .badge{background:var(--solid)!important;color:#fff!important;animation:none!important}
+.cf-dots button.on{background:var(--solid)!important}
+.avatar,.hero .avatar{background:var(--solid)!important}
+.news-img.ph{background:var(--card-on)!important;animation:none!important}
+/* promo: kartu satu warna */
+.promo,.promo.rise{background:var(--solid)!important;background-size:auto!important;box-shadow:0 18px 40px -26px rgba(0,0,0,.8)!important}
+.promo.rise{animation:rise .7s cubic-bezier(.2,.8,.2,1) backwards}
+.promo::after{display:none!important}
+.promo .btn{background:#fff!important;color:#1d1512!important;box-shadow:none!important}
+/* kartu, chip, tombol biasa: warna rata */
+.link,.sewa-cta,.manage-cta,.news-card,.card,.live,.chips li,.fab,.btn2:not(.primary),.ib,.pay li,.sw-msg,.ipick,.igrid,.le,.cf-card,.cf-bar,.sw-portal,.sw-steps li,.ow-b:not(.pri),.edx-nav,.ed-bar{background:var(--card)!important;box-shadow:none!important}
+.link::after,.sewa-cta::after,.manage-cta::after,.news-card::after,.card::after,.fab::after,.sw-msg::after,.link::before{display:none!important}
+.link,.manage-cta,.news-card,.card,.cf-card,.cf-bar,.sw-portal,.sw-steps li,.ow-b:not(.pri),.ib,.pay li,.chips li,.live,.btn2:not(.primary){border:1px solid var(--line)!important}
+.link.featured,.sewa-cta{border:1.5px solid var(--solid)!important}
+.cf-card.on{border-color:var(--solid)!important}
+.edx-nb.on,.edx-dev button.on{background:var(--card-on)!important;box-shadow:inset 0 0 0 1px var(--line)!important}
+.boot>div{background:var(--card)!important;animation:btpulse 1.2s ease-in-out infinite alternate!important}
+@keyframes btpulse{from{opacity:.55}to{opacity:1}}
+/* efek hanya saat kursor lewat / ditekan */
+@media (hover:hover) and (pointer:fine){
+  .v2 .link:hover,.manage-cta:hover,.sw-portal:hover,.ow-b:not(.pri):hover,.btn2:not(.primary):not(:disabled):hover,.pay li:hover,.ib:hover{background:var(--card-h)!important;border-color:var(--solid)!important;box-shadow:0 14px 30px -20px rgba(242,107,29,.9)!important}
+  .v2 .link:hover .ic,.sw-portal:hover .ic{background:var(--solid)!important;color:#fff!important}
+  .btn2.primary:not(:disabled):hover,.ow-b.pri:hover{background:var(--solid-h)!important;box-shadow:0 12px 26px -14px rgba(242,107,29,.95)!important}
+  .link.featured:hover,.sewa-cta:hover{border-color:var(--solid-h)!important}
+  .promo .btn:hover{background:#fff!important}
+}
+
+
+/* ═══════════ ELEGAN: arang hangat + oranye (aksi) + emas lembut (aksen) · tanpa gradasi ═══════════ */
+:root{--o:#F2711F;--o-h:#FF8433;--gold:#D9B77E;--gold-s:rgba(217,183,126,.12);--cream:#F4EDE6;--card:#1C1614;--card-h:#241C19;--card-on:#2A201C;--hair:rgba(244,237,230,.09);--solid:var(--o);--solid-h:var(--o-h)}
+body{color:var(--cream)}
+.name,.news h2,.sw-hero h1,.edx-head h1{font-weight:800!important;letter-spacing:-.025em!important;color:var(--cream)}
+.name .nm{color:var(--cream)!important}
+.link .t,.cf-body h3,.sw-steps b{font-weight:700!important;letter-spacing:-.01em;color:var(--cream)}
+.link .s,.bio,.news-sub,.sw-steps small{color:#A99F98!important}
+.section-label,.v2 .section-label,.news-titles .section-label,.sw-hero .section-label{color:var(--gold)!important;font-weight:700!important;letter-spacing:.2em!important;font-size:.68rem!important}
+/* kartu: rata, garis tipis, kilau tepi halus (tanpa gradasi) */
+.link,.manage-cta,.news-card,.card,.cf-card,.cf-bar,.sw-portal,.sw-steps li,.ow-b:not(.pri),.ib,.pay li,.chips li,.live,.btn2:not(.primary){border-color:var(--hair)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important}
+.v2 .lk .link .ic,.manage-cta .ic,.sw-portal .ic{background:var(--gold-s)!important;color:var(--gold)!important}
+.v2 .lk .link .go{color:#7E746D!important}
+.v2 .lk-hot .link{border-color:rgba(242,113,31,.55)!important}
+.v2 .lk-hot .link .ic{background:var(--o)!important;color:#fff!important}
+.link.featured .badge{background:transparent!important;color:var(--o)!important;border:1px solid rgba(242,113,31,.6);padding:1px 6px!important;border-radius:5px}
+.v2 .owner{border:1px solid rgba(217,183,126,.4)!important;background:var(--card)!important}
+.v2 .owner .ic{background:var(--gold)!important;color:#1C1614!important}
+.v2 .owner .ey{color:var(--gold)!important}
+.v2 .owner .ow-b:not(.pri){background:transparent!important;border-color:rgba(217,183,126,.45)!important;color:var(--cream)!important}
+.promo{background:var(--o)!important}
+.promo .btn{background:#fff!important;color:#1C1614!important}
+.promo h2{font-weight:800!important}
+.news-badge{background:#1C1614!important;color:var(--gold)!important;border:1px solid rgba(217,183,126,.45)!important}
+.cf-card.on{border-color:rgba(217,183,126,.6)!important}
+.cf-dots button.on{background:var(--gold)!important}
+.sw-steps .n,.sw-steps li.cur .n{background:transparent!important;color:var(--gold)!important;border:1px solid rgba(217,183,126,.55)}
+.sw-price .v{color:var(--o)!important}
+.live{color:#7DDBA9!important}
+@media (hover:hover) and (pointer:fine){
+  .v2 .link:hover,.manage-cta:hover,.sw-portal:hover,.ow-b:not(.pri):hover,.btn2:not(.primary):not(:disabled):hover,.pay li:hover,.ib:hover{background:var(--card-h)!important;border-color:rgba(217,183,126,.55)!important;box-shadow:0 16px 34px -24px rgba(0,0,0,.9)!important}
+  .v2 .link:hover .ic,.sw-portal:hover .ic{background:var(--gold)!important;color:#1C1614!important}
+  .v2 .lk-hot .link:hover{border-color:var(--o)!important}
+  .v2 .lk-hot .link:hover .ic{background:var(--o-h)!important;color:#fff!important}
+  .pay li:hover{color:var(--gold)!important}
+}
 </style>
 </head>
 <body>
@@ -1060,8 +1134,8 @@ function renderView(s){
   var n=0;
   var hero=el("header",{class:"hero"},[
     p.banner?el("button",{type:"button",class:"banner rise",style:"--i:0","aria-label":"Putar ulang animasi logo",onclick:function(e){
-        var im=e.currentTarget.querySelector("img"),src=im.src;im.src="";setTimeout(function(){im.src=src;},30);}},[el("img",{src:p.banner,alt:"Logo "+(p.name||"")})])
-      :el("div",{class:"avatar rise"+(p.logoFull?" full":""),style:"--i:0"},[el("img",{src:p.logo||"",alt:"Logo "+(p.name||"")})]),
+        var im=e.currentTarget.querySelector("img"),src=im.src;im.src="";setTimeout(function(){im.src=src;},30);}},[el("img",{src:loopSrc(p.banner),alt:"Logo "+(p.name||"")})])
+      :el("div",{class:"avatar rise"+(p.logoFull?" full":""),style:"--i:0"},[el("img",{src:loopSrc(p.logo||""),alt:"Logo "+(p.name||"")})]),
     el("h1",{class:"name rise"+(p.banner&&p.bannerHideText?" sr":""),style:"--i:1"},[el("span",{class:"nm",text:p.name||""}), p.verified?el("span",{html:svg("verified",UI),title:"Akun resmi"}):null]),
     p.tagline&&!(p.banner&&p.bannerHideText)?el("p",{class:"tagline rise",style:"--i:2",text:p.tagline}):null,
     p.badge?el("span",{class:"live rise",style:"--i:2"},[el("i"),p.badge]):null,
@@ -1132,7 +1206,7 @@ function renderView(s){
         :(x.text&&x.text.length>90?el("button",{type:"button",class:"news-more","data-tog":"1",onclick:cfToggle},["Baca selengkapnya"]):null);
       return el("article",{class:"news-cf"},[
         el("div",{class:"cf-img"+(x.image?"":" ph")},[
-          x.image?el("img",{src:x.image,alt:"",loading:"lazy",decoding:"async",draggable:"false"}):el("span",{class:"ph-ic",html:svg("megaphone")}),
+          x.image?el("img",{src:loopSrc(x.image),alt:"",loading:"lazy",decoding:"async",draggable:"false"}):el("span",{class:"ph-ic",html:svg("megaphone")}),
           x.image?el("button",{type:"button",class:"cf-zoom","aria-label":"Perbesar gambar: "+x.title,onclick:function(){lightbox(gallery,gi);},html:svg("zoom",UI)}):null,
           x.badge?el("span",{class:"news-badge"},[el("span",{html:svg("calendar")}),x.badge]):null
         ]),
@@ -1173,6 +1247,54 @@ function renderView(s){
   if(canEdit){
     app.appendChild(el("button",{class:"fab",type:"button",onclick:startEdit},[el("span",{html:svg("edit",UI)}),"Edit halaman"]));
   }
+}
+
+/* ---------- GIF / WebP animasi: paksa berulang terus (loop = 0), supaya tidak berhenti setelah sekali main ---------- */
+function fixLoopBytes(u8){
+  try{
+    if(u8[0]===0x52&&u8[1]===0x49&&u8[2]===0x46&&u8[3]===0x46&&u8[8]===0x57&&u8[9]===0x45){   // RIFF....WEBP
+      var i=12;
+      while(i+8<=u8.length){
+        var id=String.fromCharCode(u8[i],u8[i+1],u8[i+2],u8[i+3]),sz=(u8[i+4]|(u8[i+5]<<8)|(u8[i+6]<<16))+u8[i+7]*16777216;
+        if(id==="ANIM"){if(u8[i+12]||u8[i+13]){u8[i+12]=0;u8[i+13]=0;return u8;}return null;}
+        i+=8+sz+(sz&1);
+      }
+      return null;
+    }
+    if(u8[0]===0x47&&u8[1]===0x49&&u8[2]===0x46){   // GIF
+      var sig="NETSCAPE2.0",j,k,ok;
+      for(j=13;j<u8.length-19;j++){
+        if(u8[j]!==0x21||u8[j+1]!==0xFF||u8[j+2]!==0x0B)continue;
+        ok=true;for(k=0;k<11;k++)if(u8[j+3+k]!==sig.charCodeAt(k)){ok=false;break;}
+        if(ok){if(u8[j+16]||u8[j+17]){u8[j+16]=0;u8[j+17]=0;return u8;}return null;}
+      }
+      var fl=u8[10],at=13+((fl&0x80)?3*(1<<((fl&7)+1)):0);   // sisipkan ekstensi loop setelah palet global
+      var ext=[0x21,0xFF,0x0B];for(k=0;k<11;k++)ext.push(sig.charCodeAt(k));ext.push(0x03,0x01,0x00,0x00,0x00);
+      var out=new Uint8Array(u8.length+ext.length);out.set(u8.subarray(0,at),0);out.set(ext,at);out.set(u8.subarray(at),at+ext.length);
+      return out;
+    }
+  }catch(e){}
+  return null;
+}
+function dataBytes(u){var i=u.indexOf(","),bin=atob(u.slice(i+1)),n=bin.length,a=new Uint8Array(n);for(var k=0;k<n;k++)a[k]=bin.charCodeAt(k);return a;}
+var loopCache={};
+/* untuk ditampilkan: data URL → alamat blob yang sudah diperbaiki (hasil disimpan, jadi hanya dikerjakan sekali) */
+function loopSrc(u){
+  if(typeof u!=="string"||u.length<2000||!/^data:image\/(webp|gif);base64,/i.test(u))return u;
+  var key=u.length+":"+u.slice(-64);
+  if(loopCache[key])return loopCache[key];
+  var out=u;
+  try{var f=fixLoopBytes(dataBytes(u));if(f&&window.URL&&URL.createObjectURL)out=URL.createObjectURL(new Blob([f],{type:/gif/i.test(u.slice(0,20))?"image/gif":"image/webp"}));}catch(e){}
+  loopCache[key]=out;return out;
+}
+/* untuk disimpan (upload di /edit): tetap data URL, tapi sudah berulang terus */
+function loopData(u){
+  try{
+    if(!/^data:image\/(webp|gif);base64,/i.test(u))return u;
+    var f=fixLoopBytes(dataBytes(u));if(!f)return u;
+    var st="";for(var j=0;j<f.length;j+=32768)st+=String.fromCharCode.apply(null,f.subarray(j,j+32768));
+    return u.slice(0,u.indexOf(",")+1)+btoa(st);
+  }catch(e){return u;}
 }
 
 /* ---------- slide kaca (coverflow): kartu tengah besar, samping miring ---------- */
@@ -1530,7 +1652,7 @@ function loadImage(file,o,done){
   if(animated&&file.size>lim){setStatus("GIF-nya terlalu besar ("+(file.size/1048576).toFixed(1)+" MB). Kecilkan dulu sampai di bawah "+(o.gifMax||4)+" MB, misalnya di ezgif.com.","err");return;}
   var r=new FileReader();
   r.onload=function(){
-    if(animated){done(r.result);setStatus("Gambar animasi dipasang.","ok");return;}
+    if(animated){done(loopData(r.result));setStatus("Gambar animasi dipasang (diputar berulang terus).","ok");return;}
     var img=new Image();
     img.onload=function(){
       var k=Math.min(1,o.maxW/img.width,o.maxH/img.height),w=Math.round(img.width*k),h=Math.round(img.height*k);
