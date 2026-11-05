@@ -961,6 +961,43 @@ body{color:var(--cream)}
   .v2 .lk-hot .link:hover .ic{background:var(--o-h)!important;color:#fff!important}
   .pay li:hover{color:var(--gold)!important}
 }
+
+/* ═══════════ IKON: tiap ikon punya animasi sendiri ═══════════
+   main sekali saat kartu muncul, lalu lagi setiap kursor lewat / ditekan. */
+svg.ia{transform-box:fill-box;transform-origin:center;--ia:ia-pop;--ib:ia-pop-b}
+@keyframes ia-ring{0%,100%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-15deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}@keyframes ia-ring-b{0%,100%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-15deg)}45%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}75%{transform:rotate(3deg)}}
+@keyframes ia-shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-13deg)}40%{transform:rotate(11deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(4deg)}}@keyframes ia-shake-b{0%,100%{transform:rotate(0)}20%{transform:rotate(-13deg)}40%{transform:rotate(11deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(4deg)}}
+@keyframes ia-tilt{0%,100%{transform:rotate(0) scale(1)}40%{transform:rotate(-16deg) scale(1.12)}70%{transform:rotate(7deg) scale(1.04)}}@keyframes ia-tilt-b{0%,100%{transform:rotate(0) scale(1)}40%{transform:rotate(-16deg) scale(1.12)}70%{transform:rotate(7deg) scale(1.04)}}
+@keyframes ia-bounce{0%,100%{transform:translateY(0)}30%{transform:translateY(-4.5px)}55%{transform:translateY(0)}72%{transform:translateY(-1.5px)}}@keyframes ia-bounce-b{0%,100%{transform:translateY(0)}30%{transform:translateY(-4.5px)}55%{transform:translateY(0)}72%{transform:translateY(-1.5px)}}
+@keyframes ia-fly{0%{transform:translate(0,0);opacity:1}38%{transform:translate(7px,-7px);opacity:0}39%{transform:translate(-7px,7px);opacity:0}100%{transform:translate(0,0);opacity:1}}@keyframes ia-fly-b{0%{transform:translate(0,0);opacity:1}38%{transform:translate(7px,-7px);opacity:0}39%{transform:translate(-7px,7px);opacity:0}100%{transform:translate(0,0);opacity:1}}
+@keyframes ia-drop{0%{transform:translateY(0)}35%{transform:translateY(3.5px)}60%{transform:translateY(-2px)}100%{transform:translateY(0)}}@keyframes ia-drop-b{0%{transform:translateY(0)}35%{transform:translateY(3.5px)}60%{transform:translateY(-2px)}100%{transform:translateY(0)}}
+@keyframes ia-pop{0%,100%{transform:scale(1) rotate(0)}40%{transform:scale(1.24) rotate(-7deg)}70%{transform:scale(.96) rotate(2deg)}}@keyframes ia-pop-b{0%,100%{transform:scale(1) rotate(0)}40%{transform:scale(1.24) rotate(-7deg)}70%{transform:scale(.96) rotate(2deg)}}
+@keyframes ia-beat{0%,100%{transform:scale(1)}22%{transform:scale(1.25)}42%{transform:scale(.94)}62%{transform:scale(1.12)}}@keyframes ia-beat-b{0%,100%{transform:scale(1)}22%{transform:scale(1.25)}42%{transform:scale(.94)}62%{transform:scale(1.12)}}
+@keyframes ia-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}@keyframes ia-spin-b{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes ia-blink{0%,100%{opacity:1;transform:scale(1)}30%{opacity:.25;transform:scale(.92)}55%{opacity:1;transform:scale(1.08)}78%{opacity:.5}}@keyframes ia-blink-b{0%,100%{opacity:1;transform:scale(1)}30%{opacity:.25;transform:scale(.92)}55%{opacity:1;transform:scale(1.08)}78%{opacity:.5}}
+@keyframes ia-slide{0%,100%{transform:translateX(0)}35%{transform:translateX(4.5px)}62%{transform:translateX(-2px)}}@keyframes ia-slide-b{0%,100%{transform:translateX(0)}35%{transform:translateX(4.5px)}62%{transform:translateX(-2px)}}
+svg.ia-bell{--ia:ia-ring;--ib:ia-ring-b}
+svg.ia-phone,svg.ia-gamepad,svg.ia-tag,svg.ia-ticket,svg.ia-mobile,svg.ia-lock,svg.ia-help,svg.ia-music{--ia:ia-shake;--ib:ia-shake-b}
+svg.ia-megaphone,svg.ia-headset,svg.ia-joystick,svg.ia-crown,svg.ia-key,svg.ia-thumb,svg.ia-book,svg.ia-link{--ia:ia-tilt;--ib:ia-tilt-b}
+svg.ia-bot,svg.ia-chat,svg.ia-users,svg.ia-trophy,svg.ia-bag,svg.ia-store,svg.ia-gift,svg.ia-user,svg.ia-smile,svg.ia-info,svg.ia-pin{--ia:ia-bounce;--ib:ia-bounce-b}
+svg.ia-send,svg.ia-rocket{--ia:ia-fly;--ib:ia-fly-b}
+svg.ia-mail,svg.ia-calendar,svg.ia-download{--ia:ia-drop;--ib:ia-drop-b}
+svg.ia-camera,svg.ia-image,svg.ia-video,svg.ia-wallet{--ia:ia-pop;--ib:ia-pop-b}
+svg.ia-play,svg.ia-diamond,svg.ia-fire,svg.ia-shield,svg.ia-heart{--ia:ia-beat;--ib:ia-beat-b}
+svg.ia-percent,svg.ia-star,svg.ia-sparkle,svg.ia-coin,svg.ia-clock,svg.ia-globe{--ia:ia-spin;--ib:ia-spin-b}
+svg.ia-bolt,svg.ia-qr,svg.ia-wifi{--ia:ia-blink;--ib:ia-blink-b}
+svg.ia-cart,svg.ia-card,svg.ia-chart,svg.ia-list{--ia:ia-slide;--ib:ia-slide-b}
+svg.ia-bell{transform-origin:50% 10%}
+.link .ic svg.ia{animation:var(--ia) .9s cubic-bezier(.3,.7,.3,1) both;animation-delay:calc(var(--i,0) * 70ms + 500ms)}
+.link:hover .ic svg.ia,.link:active .ic svg.ia,.iopt:hover .ic svg.ia,.iopt:focus-visible .ic svg.ia,.ipick:hover .ic svg.ia{animation:var(--ib) .9s cubic-bezier(.3,.7,.3,1) both;animation-delay:0s}
+html.pv-norise .link .ic svg.ia{animation:none}
+html.pv-norise .link:hover .ic svg.ia{animation:var(--ib) .9s cubic-bezier(.3,.7,.3,1) both}
+@media (prefers-reduced-motion:reduce){svg.ia{animation:none!important}}
+.ipanel{display:flex;flex-direction:column;gap:10px}
+.isearch{width:100%;height:42px;border-radius:12px;border:1px solid var(--hair,var(--line));background:var(--bg);color:var(--ink);padding:0 14px;font:inherit;font-size:.92rem}
+.isearch:focus{outline:none;border-color:var(--gold,var(--accent))}
+.iempty{margin:0;color:var(--muted);font-size:.85rem;text-align:center;padding:6px 0}
+.iopt[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -1067,6 +1104,15 @@ var ICON_NAMES={
   thumb:"Testimoni",heart:"Favorit",smile:"Puas",
   list:"Daftar harga",book:"Panduan",help:"Bantuan",info:"Info",download:"Download",pin:"Lokasi",globe:"Website",link:"Link lain"
 };
+/* kata kunci tambahan untuk kolom cari ikon */
+var ICON_TAGS={bot:"robot otomatis",chat:"whatsapp wa obrolan pesan",headset:"customer service admin bantuan cs",users:"group komunitas member",megaphone:"channel info pengumuman broadcast",
+  send:"telegram kirim",bell:"notif pemberitahuan",mail:"gmail surat",phone:"call telpon hubungi",camera:"instagram ig kamera",image:"foto gambar",video:"tiktok reels film",play:"youtube putar",
+  music:"lagu spotify",gamepad:"discord main game topup",joystick:"konsol main game",diamond:"ml mobile legends permata game topup",rocket:"joki boost cepat",trophy:"juara menang turnamen game",crown:"vip raja premium",
+  bag:"belanja shop",store:"toko shop",cart:"keranjang belanja order",tag:"harga promo label",percent:"diskon potongan",ticket:"voucher kupon",gift:"giveaway hadiah bonus",
+  star:"bintang favorit unggulan",fire:"api hot laris",bolt:"cepat kilat instan",sparkle:"new baru",chart:"grafik naik statistik",wallet:"dana gopay ovo dompet",qr:"qris scan bayar",
+  card:"bank transfer kartu rekening",coin:"saldo uang koin",mobile:"pulsa hp handphone",wifi:"kuota internet data",key:"kunci premium akun",lock:"aman gembok",shield:"garansi perlindungan",
+  user:"akun profil",clock:"jam 24 waktu",calendar:"jadwal tanggal event",thumb:"testimoni like jempol",heart:"suka favorit love",smile:"puas senang",list:"pricelist daftar harga",
+  book:"panduan tutorial",help:"tanya bantuan faq",info:"informasi",download:"unduh aplikasi apk",pin:"lokasi alamat map",globe:"web situs website internet",link:"tautan url lain"};
 var UI={
   arrow:'<path d="M7 17 17 7M9 7h8v8"/>',
   zoom:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/>',
@@ -1081,7 +1127,7 @@ var UI={
   check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   verified:'<path d="M12 2.5l2.4 1.8 3 .1.9 2.8 2.4 1.8-.9 2.9.9 2.9-2.4 1.8-.9 2.8-3 .1L12 21.5l-2.4-1.8-3-.1-.9-2.8-2.4-1.8.9-2.9-.9-2.9 2.4-1.8.9-2.8 3-.1L12 2.5z" fill="currentColor" stroke="none"/><path d="M8.3 12.2l2.5 2.5 4.9-5" stroke="#fff" stroke-width="2"/>'
 };
-function svg(name,set){return SV+((set||ICONS)[name]||ICONS.link)+"</svg>";}
+function svg(name,set){if(set&&set!==ICONS)return SV+(set[name]||ICONS.link)+"</svg>";var k=ICONS[name]?name:"link";return SV.replace("<svg ","<svg class=\"ia ia-"+k+"\" ")+ICONS[k]+"</svg>";}
 
 function el(tag,props,kids){
   var n=document.createElement(tag);
@@ -1395,6 +1441,7 @@ var ED_SECTIONS=[
   {id:"tema",label:"Tema warna",icon:"star",desc:"Tampilan gelap / terang website.",sel:null},
   {id:"akun",label:"Akun & login",icon:"key",desc:"Sesi login admin dan penggantian username / password.",sel:null}
 ];
+var iconQ="";   // isi kolom cari ikon
 var edSec=ss(function(){return localStorage.getItem("bm-ed-sec");})||"profil";
 var edOpen={};               // link / kabar yang sedang dibuka (id -> true)
 var edDevice=ss(function(){return localStorage.getItem("bm-ed-dev");})||"hp";
@@ -1480,12 +1527,24 @@ function secLink(d){
     var item=el("div",{class:"le"+(open?" open":"")+(l.featured?" hot":"")},[edItemHead("link",i,d.links.length,l,l.title,l.url?host(safeUrl(l.url)||l.url):"belum ada alamat",svg(l.icon),d.links)]);
     if(open){
       var pOpen=openPicker===l.id;
-      var pick=el("button",{type:"button",class:"ipick",id:pid,"aria-expanded":pOpen?"true":"false",onclick:function(){openPicker=pOpen?null:l.id;render();refocus(pid);}},[
+      var pick=el("button",{type:"button",class:"ipick",id:pid,"aria-expanded":pOpen?"true":"false",onclick:function(){openPicker=pOpen?null:l.id;iconQ="";render();refocus(pOpen?pid:pid+"-q");}},[
         el("span",{class:"ic",html:svg(l.icon)}),el("span",{class:"nm",text:ICON_NAMES[l.icon]||"Link lain"}),el("span",{class:"chev",text:pOpen?"Tutup":"Ganti ikon"})]);
-      var grid=pOpen?el("div",{class:"igrid",role:"group","aria-label":"Pilih ikon"},Object.keys(ICON_NAMES).map(function(k){
-        return el("button",{type:"button",class:"iopt"+(k===l.icon?" on":""),"aria-pressed":k===l.icon?"true":"false",title:ICON_NAMES[k],
-          onclick:function(){l.icon=k;openPicker=null;touch();render();refocus(pid);}},[el("span",{class:"ic",html:svg(k)}),el("span",{class:"olb",text:ICON_NAMES[k]})]);
-      })):null;
+      var grid=null;
+      if(pOpen){
+        var opts=Object.keys(ICON_NAMES).map(function(k){
+          var b=el("button",{type:"button",class:"iopt"+(k===l.icon?" on":""),"aria-pressed":k===l.icon?"true":"false",title:ICON_NAMES[k],
+            onclick:function(){l.icon=k;openPicker=null;iconQ="";touch();render();refocus(pid);}},[el("span",{class:"ic",html:svg(k)}),el("span",{class:"olb",text:ICON_NAMES[k]})]);
+          b._q=(ICON_NAMES[k]+" "+k+" "+(ICON_TAGS[k]||"")).toLowerCase().split(/[\s\/-]+/).filter(Boolean);return b;
+        });
+        var none=el("p",{class:"iempty",hidden:true,text:"Ikon tidak ditemukan. Coba kata lain, misalnya: wa, ig, saldo, promo."});
+        var q=el("input",{type:"search",class:"isearch",id:pid+"-q",placeholder:"Cari ikon… (mis. wa, ig, saldo, promo, game)","aria-label":"Cari ikon",autocomplete:"off"});
+        var filt=function(){var v=q.value.trim().toLowerCase(),words=v.split(/\s+/).filter(Boolean),n=0;iconQ=q.value;
+          opts.forEach(function(b){var ok=!words.length||words.every(function(w){return b._q.some(function(x){return x.indexOf(w)===0;});});b.hidden=!ok;if(ok)n++;});none.hidden=n>0;};
+        q.value=iconQ;q.addEventListener("input",filt);
+        q.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();var f=opts.filter(function(b){return !b.hidden;})[0];if(f)f.click();}if(e.key==="Escape"){openPicker=null;iconQ="";render();refocus(pid);}});
+        grid=el("div",{class:"ipanel"},[q,el("div",{class:"igrid",role:"group","aria-label":"Pilih ikon"},opts),none]);
+        filt();
+      }
       [bind(l,"title","l-"+l.id+"-t","Judul"),
        bind(l,"url","l-"+l.id+"-u","Alamat link",{ph:"https://... atau wa.me/62...",hint:"Boleh tanpa https://"}),
        bind(l,"sub","l-"+l.id+"-s","Keterangan kecil",{ph:"Kosongkan untuk menampilkan alamat link"}),
