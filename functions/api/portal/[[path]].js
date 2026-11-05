@@ -553,6 +553,10 @@ const CALLS = {
   'digi.update': { w: true, v: (a) => (DIGI_CODE.test(String(a.code || '')) && (a.kategori === undefined || digiName(a.kategori)) && (a.brand === undefined || digiName(a.brand)) && digiTypes(a.types)
     ? { code: String(a.code), ...(a.kategori !== undefined ? { kategori: a.kategori.trim() } : {}), ...(a.brand !== undefined ? { brand: a.brand.trim() } : {}), ...(a.types !== undefined ? { types: digiTypes(a.types) } : {}) } : null) },
   'digi.remove': { w: true, v: (a) => (DIGI_CODE.test(String(a.code || '')) ? { code: String(a.code) } : null), note: (a) => `🗑️ *Layanan kode ${a.code} dihapus dari menu Layanan Lainnya (website)*` },
+  // welcome / left bawaan untuk semua grup
+  'guard.get': { w: false, v: () => ({}) },
+  'guard.setAll': { w: true, v: (a) => (['welcome', 'left'].includes(a.kind) && typeof a.on === 'boolean' ? { kind: a.kind, on: a.on } : null),
+    note: (a) => `👋 *${a.kind === 'welcome' ? 'Sambutan member baru' : 'Pesan member keluar'} ${a.on ? 'dinyalakan' : 'dimatikan'} untuk semua grup (dari website)*` },
   // saluran testimoni WhatsApp milik penyewa
   'saluran.get': { w: false, v: () => ({}) },
   'saluran.set': { w: true, v: (a) => { const l = String(a.link || '').trim(); return /^https:\/\/(www\.)?whatsapp\.com\/channel\/[\w-]{10,60}\/?$/i.test(l) || /^\d{8,30}@newsletter$/.test(l) ? { link: l } : null; },
