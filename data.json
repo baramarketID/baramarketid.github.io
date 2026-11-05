@@ -60,6 +60,22 @@
    "featured": false
   },
   {
+   "id": "l2",
+   "title": "CS  WhatsApp",
+   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya",
+   "sub": "Tanya produk, kendala order, konfirmasi bayar",
+   "icon": "headset",
+   "featured": false
+  },
+  {
+   "id": "l8",
+   "title": "CS Telegram",
+   "url": "https://t.me/Csbaramarket",
+   "sub": "@Csbaramarket",
+   "icon": "headset",
+   "featured": false
+  },
+  {
    "id": "l3",
    "title": "Testimoni Saluran Whatsapp",
    "url": "https://whatsapp.com/channel/0029VbA2ZRQLikg98UJbH620",
@@ -84,35 +100,11 @@
    "featured": false
   },
   {
-   "id": "l2",
-   "title": "CS  WhatsApp",
-   "url": "https://wa.me/6282312108501?text=Halo%20min%2C%20mau%20tanya",
-   "sub": "Tanya produk, kendala order, konfirmasi bayar",
-   "icon": "headset",
-   "featured": false
-  },
-  {
-   "id": "l8",
-   "title": "CS Telegram",
-   "url": "https://t.me/Csbaramarket",
-   "sub": "@Csbaramarket",
-   "icon": "headset",
-   "featured": false
-  },
-  {
    "id": "l6",
    "title": "Instagram",
    "url": "https://www.instagram.com/baramarkett",
    "sub": "@baramarkett",
    "icon": "camera",
-   "featured": false
-  },
-  {
-   "id": "l7",
-   "title": "Discord Bara Market",
-   "url": "https://discord.gg/qxwaCNss",
-   "sub": "Komunitas & giveaway",
-   "icon": "gamepad",
    "featured": false
   }
  ],
