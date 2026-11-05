@@ -1233,7 +1233,19 @@ function cfToggle(e){
 }
 
 /* ---------- editor ---------- */
-function startEdit(){if(localEdit&&!inClaude&&!session()){mode="login";render();return;}var ld=localEdit?ss(function(){return JSON.parse(localStorage.getItem(LOCAL_KEY)||"null");}):null;draft=ld||clone(state);if(ld)status={text:"Melanjutkan draf terakhir yang tersimpan di browser ini.",kind:""};else status={text:"",kind:""};previewing=false;(draft.links||[]).concat(draft.news||[]).forEach(function(l){if(!l.id)l.id=uid();});mode="edit";render();window.scrollTo(0,0);}
+/* Editor hanya dibuka setelah isi website (data.json) benar-benar termuat; kalau tidak, menyimpan bisa menimpa isi asli dengan isi bawaan. */
+function startEdit(){
+  if(!inClaude&&!PREVIEW&&/^https?:$/.test(location.protocol)&&!remoteLoaded){
+    status={text:"Memuat isi website terbaru…",kind:""};
+    loadRemote().then(function(){
+      if(remoteLoaded){startEditNow();return;}
+      mode="login";status={text:"Isi website gagal dimuat, jadi editor tidak dibuka supaya isi yang sudah tayang tidak tertimpa. Cek internet lalu muat ulang halaman.",kind:"err"};render();
+    });
+    return;
+  }
+  startEditNow();
+}
+function startEditNow(){if(localEdit&&!inClaude&&!session()){mode="login";render();return;}var ld=localEdit?ss(function(){return JSON.parse(localStorage.getItem(LOCAL_KEY)||"null");}):null;draft=ld||clone(state);draftResumed=!!ld;if(ld)status={text:"Melanjutkan draf yang belum diterbitkan di browser ini. Kalau isinya bukan yang kamu harapkan, tekan Buang draf.",kind:""};else status={text:"",kind:""};previewing=false;(draft.links||[]).concat(draft.news||[]).forEach(function(l){if(!l.id)l.id=uid();});mode="edit";render();window.scrollTo(0,0);}
 function bind(obj,key,id,label,opt){
   opt=opt||{};
   var input=opt.area?el("textarea",{id:id,rows:opt.rows||3}):el("input",{id:id,type:opt.type||"text",placeholder:opt.ph||null});
@@ -1447,6 +1459,7 @@ function renderEditor(){
   }));
   var head=el("header",{class:"edx-head"},[
     el("div",null,[el("h1",{text:"Edit halaman"}),el("p",{text:localEdit?(ghToken()?"Pilih bagian di kiri, ubah isinya, lihat hasilnya langsung di pratinjau. Tekan Simpan & terbitkan kalau sudah pas — website berubah ±1 menit kemudian.":"Ubah isi, cek lewat Pratinjau, lalu simpan."):"Ubah isi lalu tekan Simpan."})]),
+    draftResumed&&localEdit?el("button",{type:"button",class:"btn2 sm",onclick:function(){if(!confirm("Buang draf di browser ini dan pakai isi website yang sedang tayang?"))return;ss(function(){localStorage.removeItem(LOCAL_KEY);});draft=clone(state);(draft.links||[]).concat(draft.news||[]).forEach(function(l){if(!l.id)l.id=uid();});draftResumed=false;status={text:"Draf dibuang. Sekarang memakai isi website yang sedang tayang.",kind:"ok"};edRoot=null;render();}},[el("span",{html:svg("trash",UI)}),"Buang draf"]):null,
     el("a",{class:"btn2 sm",href:pageHref(""),onclick:function(e){e.preventDefault();if(confirm("Keluar dari mode edit? Perubahan tetap tersimpan sebagai draf di browser ini."))nav("");}},[el("span",{html:svg("left",UI)}),"Ke website"])
   ]);
   var main=el("div",{class:"edx-main"},[
@@ -2157,14 +2170,14 @@ function lightbox(list,start){
 }
 
 /* ---------- boot: isi terbaru dari data.json ---------- */
-var booted=false;
+var booted=false,remoteLoaded=false,draftResumed=false;
 function loadRemote(){
   if(inClaude||!/^https?:$/.test(location.protocol))return Promise.resolve();
   // no-cache: browser memakai salinan tersimpan kalau file belum berubah (cepat), dan mengambil yang baru kalau sudah diubah
   return fetch((HASH_MODE?"":"/")+"data.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():null;}).then(function(j){
     if(j&&j.profile&&Array.isArray(j.links)){
       if(!("news" in j)){j.news=state.news||[];j.newsSection=state.newsSection;}
-      state=j;
+      state=j;remoteLoaded=true;
       if(booted&&mode==="view")render();   // datang terlambat → langsung diperbarui, tanpa perlu refresh
     }
   }).catch(function(){});
