@@ -625,7 +625,35 @@
     if (!list.length) return [head, h('div', { class: 'empty' }, [I('search'), h('h3', { text: 'Tidak ada yang cocok' }), h('p', { text: 'Coba kata lain, mis. "nickname", "QRIS", atau "grup".' })])];
     const grid = h('div', { class: 'items', id: 'items' }, list.map((it, i) => itemCard(it, i)));
     const sel = list.find((x) => x.key === S.sel) || (S.q.trim() ? null : list[0]);
-    return [head, grid, sel ? renderEditor(sel) : h('div', { class: 'empty' }, [I('eye'), h('h3', { text: 'Pilih salah satu' }), h('p', { text: 'Klik pengaturan di atas untuk mulai mengedit.' })])];
+    return [head, S.group === 'grup' && !S.q.trim() ? welcomePanel() : null, grid, sel ? renderEditor(sel) : h('div', { class: 'empty' }, [I('eye'), h('h3', { text: 'Pilih salah satu' }), h('p', { text: 'Klik pengaturan di atas untuk mulai mengedit.' })])];
+  }
+  /** Saklar welcome / left untuk SEMUA grup (di halaman wording "Pesan di Grup"). */
+  function welcomePanel() {
+    const v = V('__guard');
+    if (!v.data && !v.busy && !v.err) setTimeout(() => loadView('__guard', 'guard.get'), 0);
+    const d = v.data;
+    const row = (kind, title, sub) => {
+      const on = d ? Boolean(kind === 'welcome' ? d.welcomeAll : d.leftAll) : false;
+      const custom = d ? (kind === 'welcome' ? d.welcomeCustom : d.leftCustom) : 0;
+      const busy = v.saving === kind;
+      return h('div', { class: 'setrow' }, [
+        h('div', { class: 'tx' }, [h('b', { text: title }), h('small', { text: sub + (custom ? ` · ${custom} grup diatur sendiri oleh admin grup` : '') })]),
+        !d || busy ? h('span', { class: 'spin' }) : h('button', { type: 'button', role: 'switch', class: `switch${on ? ' on' : ''}`, 'aria-checked': String(on), 'aria-label': title, onclick: async () => {
+          v.saving = kind; refreshMain();
+          const r = await callFn('guard.setAll', { kind, on: !on }, 30000);
+          v.saving = '';
+          if (r.ok) { v.data = r.result; toast(`${title} ${!on ? 'dinyalakan' : 'dimatikan'} untuk semua grup.`); } else toast(r.error, 'err');
+          refreshMain();
+        } }, h('span')),
+      ]);
+    };
+    return h('section', { class: 'dsec welcome-panel' }, [
+      h('div', { class: 'row between' }, [h('h3', { class: 'dh', text: 'Welcome & Left' }), h('span', { class: 'hint', text: 'Berlaku untuk semua grup yang ada bot-nya' })]),
+      v.err && !d ? msg('err', v.err) : null,
+      row('welcome', 'Sambutan member baru (welcome)', 'Bot menyapa member yang baru masuk grup.'),
+      row('left', 'Pesan member keluar (left)', 'Bot mengirim pesan saat member keluar / dikeluarkan.'),
+      h('p', { class: 'hint', text: 'Teksnya diatur di bawah (Sambutan member baru & Pesan member keluar). Admin grup tetap bisa menyalakan / mematikan per grup: ketik welcome on/off atau left on/off di grup itu. Penjaga lain (antilink, antilink2, antispam, dll.) diatur per grup lewat WhatsApp — ketik menuotomatis.' }),
+    ]);
   }
   function refreshMain() { const m = $('#main'); if (!m) return; m.textContent = ''; add(m, renderMain()); refreshSide(); }
   function itemCard(it, i) {
@@ -908,7 +936,7 @@
     if (id !== S.botId) return;
     v.busy = false;
     if (r.ok) v.data = r.result; else v.err = r.error || 'Gagal memuat.';
-    if (S.group === k) refreshMain();
+    if (S.group === k || (k === '__guard' && S.group === 'grup') || (k === '__digiCat' && S.group === '__digi')) refreshMain();
   }
   const viewHead = (k, extra) => h('div', { class: 'ghead row between' }, [h('div', null, [h('h2', { text: VIEWS[k].label }), h('p', { text: VIEWS[k].desc })]), extra ? h('div', { class: 'row' }, extra) : null]);
   const refreshBtn = (onclick, busy) => h('button', { class: 'btn sm', type: 'button', disabled: busy ? true : null, onclick }, [busy ? h('span', { class: 'spin' }) : I('refresh'), busy ? 'Memuat…' : 'Muat ulang']);
