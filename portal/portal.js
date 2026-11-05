@@ -14,6 +14,7 @@
   const P = {
     bot: '<path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/>',
     store: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/>',
+    tap: '<path d="M9 11V5a2 2 0 0 1 4 0v5"/><path d="M13 10a2 2 0 0 1 4 0v1"/><path d="M17 11a2 2 0 0 1 4 0v3a7 7 0 0 1-7 7h-1.5a6 6 0 0 1-4.6-2.2L4 14.5a2 2 0 0 1 3-2.6L9 14"/>',
     menu: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
     list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
@@ -269,7 +270,19 @@
     if (it.key === 'invPrefix') return renderText(curOf('orderProses'), varsOf(S.byKey.orderProses), S.byKey.orderProses.opt);
     return text;
   }
+  /** Nama tombol: tulisan bawaan → tulisan pilihan penyewa (draf / di bot). */
+  function btnText(t, live) {
+    const it = S.btnByText && S.btnByText[t];
+    if (!it) return t;
+    const v = live ? liveText(it) : editText(it);
+    return String(v || '').replace(/\s+/g, ' ').trim() || t;
+  }
+  /** Pesan contoh tempat tombol muncul (pratinjau item Nama Tombol). */
+  const BTN_CTX = { menu: 'menuText', produk: 'produkText', saldo: 'saldoProfil', daftar: 'daftarSukses', get: 'menuGame', get2: 'menuLain',
+    'TPO MLWP 173059364 2890': 'orderKonfirmasi', 'depo 25000': 'depoQris', cekml: 'nickAsk', '(tekan) FREE FIRE 🔥': 'getGroup' };
+  const btnCtx = (it) => (it.key === 'btnDaftar' ? 'belumDaftar' : it.key === 'btnBatalTpo' ? 'orderKonfirmasi' : BTN_CTX[it.btn.trig]);
   function previewOf(it, text) {
+    if (it.btn) { const k = btnCtx(it); const ctx = k && S.byKey[k]; return ctx && featureOn(ctx) ? previewOf(ctx, curOf(k)) : 'Pilih salah satu tombol di bawah 👇'; }
     if (isProfile(it)) return profilePreview(it, text);
     const target = it.previewOf ? S.byKey[it.previewOf] : it;
     if (target && target.combo && target.combo.list) return listPreview();
@@ -348,19 +361,21 @@
     }
     if (last < str.length) parent.appendChild(document.createTextNode(str.slice(last)));
   }
-  function waPhone(it, rendered) {
+  function waPhone(it, rendered, live) {
     const nm = curOf('botName') || 'BOT TOPUP';
     const chat = h('div', { class: 'wa-chat' });
-    const trig = TRIGGER[it.key];
+    const ctxKey = it.btn ? btnCtx(it) : null;
+    const trig = it.btn ? it.btn.trig : TRIGGER[it.key];
     const tm = nowWib().jam;
     if (trig) chat.appendChild(h('div', { class: 'bub out' }, [trig, h('span', { class: 'tm', text: tm + ' ✓✓' })]));
     const b = h('div', { class: 'bub in' });
-    if (IMAGE[it.key]) b.appendChild(h('div', { class: 'img' }, [I('image'), IMAGE[it.key]]));
+    const img = IMAGE[ctxKey || it.key];
+    if (img) b.appendChild(h('div', { class: 'img' }, [I('image'), img]));
     b.appendChild(waFormat(rendered || ' '));
     b.appendChild(h('span', { class: 'tm', text: tm }));
     chat.appendChild(b);
-    const btns = BUTTONS[it.key];
-    if (btns) chat.appendChild(h('div', { class: 'wa-btns' }, btns.map((x) => h('span', { text: x }))));
+    const btns = it.btn ? it.btn.sib : BUTTONS[it.key];
+    if (btns) chat.appendChild(h('div', { class: 'wa-btns' }, btns.map((x) => h('span', { class: it.btn && x === it.def ? 'hl' : null, text: btnText(x, live) }))));
     return h('div', { class: 'wa', 'aria-label': 'Pratinjau pesan WhatsApp' }, [
       h('div', { class: 'wa-head' }, [h('span', { class: 'av', text: (nm[0] || 'B').toUpperCase() }), h('div', null, [h('b', { text: nm }), h('small', { text: 'online' })])]),
       chat,
@@ -528,7 +543,7 @@
     const d = await api(`/data?tenant=${encodeURIComponent(id)}`);
     if (!d.ok) { if (d._status === 401) return; return renderFatal(d.error, true); }
     S.botId = id; ls.set(LS_BOT, id);
-    S.cat = d.catalog; S.byKey = Object.fromEntries(d.catalog.items.map((i) => [i.key, i]));
+    S.cat = d.catalog; S.byKey = Object.fromEntries(d.catalog.items.map((i) => [i.key, i])); S.btnByText = Object.fromEntries(d.catalog.items.filter((i) => i.btn).map((i) => [i.def, i]));
     S.state = d.state; S.hostAlive = d.hostAlive;
     S.draft = {};
     for (const [k, v] of Object.entries((d.draft && d.draft.values) || {})) if (S.byKey[k] && (v === null || typeof v === 'string')) S.draft[k] = v;
@@ -606,7 +621,7 @@
         class: `gbtn${S.group === DASH && !S.q ? ' on' : ''}`, type: 'button', 'aria-current': S.group === DASH && !S.q ? 'true' : null,
         onclick: () => goGroup(DASH),
       }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]),
-      h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__saluran', '__digi', '__ppob'].filter(viewOn).map(viewBtn),
+      h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__saluran', '__bara', '__digi', '__ppob'].filter(viewOn).map(viewBtn),
       h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
         class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
         onclick: () => { const first = items().find((x) => x.g === g.id); goGroup(g.id, first ? first.key : ''); },
@@ -635,7 +650,7 @@
     if (S.group === DASH && !S.q.trim()) return renderDash();
     if (VIEWS[S.group] && !S.q.trim()) {
       if (!viewOn(S.group)) { S.group = DASH; return renderDash(); }
-      return ({ __bot: renderBot, __profit: renderProfit, __users: renderUsers, __hist: renderHist, __banner: renderBanner, __saluran: renderSaluran, __digi: renderDigi, __ppob: renderPpob, __help: renderHelp })[S.group]();
+      return ({ __bot: renderBot, __profit: renderProfit, __users: renderUsers, __hist: renderHist, __banner: renderBanner, __saluran: renderSaluran, __digi: renderDigi, __bara: renderBara, __ppob: renderPpob, __help: renderHelp })[S.group]();
     }
     const g = S.cat.groups.find((x) => x.id === S.group) || {};
     const list = visibleItems();
@@ -941,6 +956,7 @@
     __banner: { label: 'Banner Toko', icon: 'image', desc: 'Gambar yang tampil di atas halaman produk (ketik produk / list).' },
     __saluran: { label: 'Saluran Testimoni', icon: 'chat', desc: 'Transaksi sukses otomatis diposting ke saluran WhatsApp milikmu (setsaluran / ceksaluran / setteksaluran).' },
     __digi: { label: 'Layanan Lainnya', icon: 'spark', desc: 'Menu Digiflazz (addcode / listcode / delcode): pilih brand Digiflazz yang tampil di get2, atur type, dan lihat produk + harga.', need: 'digi' },
+    __bara: { label: 'Produk Baramarket', icon: 'eye', desc: 'Sembunyikan / nonaktifkan game atau produk topup Baramarket di tokomu. Yang disembunyikan tidak tampil di get dan tidak bisa diorder.' },
     __ppob: { label: 'Produk PPOB', icon: 'eye', desc: 'Sembunyikan / tampilkan kategori, layanan, atau produk PPOB di tokomu.', need: 'oke' },
     __help: { label: 'Panduan', icon: 'book', desc: 'Jawaban singkat untuk pertanyaan yang paling sering muncul.' },
   };
@@ -1369,6 +1385,57 @@
   }
 
   // ── 8. PPOB ──
+  /** Produk Baramarket (topup game): kelompok → game → produk. Hijau = tampil. */
+  function renderBara() {
+    const g = viewGuard('__bara', 'bara.tree'); const v = V('__bara');
+    const head = viewHead('__bara', [refreshBtn(() => loadView('__bara', 'bara.tree', {}, true), v.busy)]);
+    if (g) return [head, ...g];
+    const d = v.data;
+    v.open = v.open || {};
+    const sw = (on, label, onchange) => h('button', { type: 'button', role: 'switch', class: `switch${on ? ' on' : ''}`, 'aria-checked': String(on), 'aria-label': label, onclick: (e) => { e.stopPropagation(); onchange(!on); } }, h('span'));
+    const setH = async (kind, key, hidden, apply) => {
+      apply(hidden); refreshMain();
+      const r = await callFn('bara.set', { kind, key, hidden });
+      if (!r.ok) { apply(!hidden); toast(r.error, 'err'); } else { d.hiddenCount = r.result.hiddenCount; toast(hidden ? `${key} disembunyikan dari tokomu.` : `${key} tampil lagi di tokomu.`); }
+      refreshMain();
+    };
+    const q = (v.q || '').trim().toLowerCase();
+    const search = h('input', { class: 'input', id: 'br-q', type: 'search', placeholder: 'Cari game atau kode produk… (mis. mobile legends, MLWP)', value: v.q || '' });
+    search.addEventListener('input', () => { v.q = search.value; const keep = search.selectionStart; refreshMain(); const s2 = $('#br-q'); if (s2) { s2.focus(); s2.setSelectionRange(keep, keep); } });
+    const match = (gm) => !q || gm.name.toLowerCase().includes(q) || (q.length >= 2 && gm.items.some((it) => (it.code + ' ' + it.nama).toLowerCase().includes(q)));
+    const gameEl = (gm) => {
+      const open = v.open[gm.name] || (q && q.length >= 3 && !gm.name.toLowerCase().includes(q));
+      const nHid = gm.items.filter((it) => it.hidden).length;
+      return h('div', { class: `pbrand${gm.hidden ? ' off' : ''}` }, [
+        h('div', { class: 'prow', onclick: () => { v.open[gm.name] = !v.open[gm.name]; refreshMain(); } }, [
+          h('span', { class: `chev2${open ? ' open' : ''}`, icon: 'chev' }), h('span', { text: gm.name }),
+          h('small', { class: 'hint', text: `${gm.items.length} produk${nHid ? ` · ${nHid} disembunyikan` : ''}` }),
+          sw(!gm.hidden, `Tampilkan ${gm.name}`, (on) => setH('games', gm.name, !on, (hid) => { gm.hidden = hid; })),
+        ]),
+        open ? h('div', { class: 'pitems' }, gm.items.length ? gm.items.filter((it) => !q || q.length < 3 || gm.name.toLowerCase().includes(q) || (it.code + ' ' + it.nama).toLowerCase().includes(q)).map((it) => h('div', { class: `pitem${it.hidden ? ' off' : ''}` }, [
+          h('span', { class: 'tx' }, [h('span', { text: it.nama }), h('code', { text: it.code }), it.aktif ? null : h('span', { class: 'chip def', text: 'gangguan' })]),
+          sw(!it.hidden, `Tampilkan ${it.code}`, (on) => setH('prods', it.code, !on, (hid) => { it.hidden = hid; })),
+        ])) : [h('p', { class: 'hint', text: d.error ? 'Produk belum bisa dimuat dari Baramarket.' : 'Belum ada produk untuk game ini.' })]) : null,
+      ]);
+    };
+    const groups = d.groups.map((gr) => ({ ...gr, games: gr.games.filter(match) })).filter((gr) => gr.games.length);
+    const nGames = d.groups.reduce((n, gr) => n + gr.games.length, 0);
+    return [
+      head,
+      h('div', { class: 'tiles' }, [tile2('Disembunyikan', String(d.hiddenCount || 0), d.hiddenCount ? 'warn' : ''), tile2('Game', String(nGames))]),
+      d.error ? msg('warn', `Daftar produk belum bisa diambil: ${d.error}. Game tetap bisa diatur.`) : null,
+      h('section', { class: 'dsec' }, [
+        h('div', { class: 'row filters' }, [search, d.hiddenCount ? h('button', { class: 'btn sm', type: 'button', onclick: () => openModal({ kind: 'confirm', title: 'Tampilkan semua game & produk?', text: 'Semua game dan produk Baramarket yang disembunyikan akan tampil lagi di tokomu.', ok: 'Tampilkan semua', onOk: async () => { closeModal(); const r = await callFn('bara.reset'); if (r.ok) { v.data = null; loadView('__bara', 'bara.tree', {}, true); toast('Semua game & produk tampil lagi.'); } else toast(r.error, 'err'); } }) }, [I('eye'), 'Tampilkan semua']) : null]),
+        h('p', { class: 'hint', text: 'Hijau = tampil & bisa diorder. Matikan saklar game untuk menyembunyikan seluruh game, atau buka game lalu matikan produk tertentu saja. Pembeli yang mengetik kodenya akan mendapat jawaban "produk tidak ada".' }),
+        ...groups.map((gr) => h('div', { class: 'pcat' }, [
+          h('div', { class: 'prow static' }, [h('b', { text: `${gr.name} ${gr.emoji || ''}`.trim() }), h('small', { class: 'hint', text: `${gr.games.length} game` })]),
+          h('div', { class: 'pbrands' }, gr.games.map(gameEl)),
+        ])),
+        !groups.length ? h('div', { class: 'empty' }, [I('search'), h('h3', { text: 'Tidak ada yang cocok' }), h('p', { text: 'Coba kata lain atau kode produk.' })]) : null,
+      ]),
+    ];
+  }
+
   function renderPpob() {
     const g = viewGuard('__ppob', 'ppob.tree'); const v = V('__ppob');
     const head = viewHead('__ppob', [refreshBtn(() => loadView('__ppob', 'ppob.tree', {}, true), v.busy)]);
@@ -1740,7 +1807,7 @@
       ta.classList.toggle('bad', pr.errors.length > 0 && changeOf(it) !== undefined);
       pvWrap.textContent = '';
       const shown = S.pv === 'live' ? previewLive(it) : previewOf(it, v);
-      pvWrap.appendChild(waPhone(it, shown));
+      pvWrap.appendChild(waPhone(it, shown, S.pv === 'live'));
       refreshCard(it); refreshSide(); renderDock();
     };
     const setValue = (v, focus) => { ta.value = v; onEdit(it, v); update(); if (focus) ta.focus(); };
