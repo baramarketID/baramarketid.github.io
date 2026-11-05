@@ -541,6 +541,9 @@ const CALLS = {
   'ppob.tree': { w: false, v: () => ({}) },
   'ppob.set': { w: true, v: (a) => (['cats', 'brands', 'prods'].includes(a.kind) && typeof a.key === 'string' && a.key.length >= 1 && a.key.length <= 160 && typeof a.hidden === 'boolean' ? { kind: a.kind, key: a.key, hidden: a.hidden } : null) },
   'ppob.reset': { w: true, v: () => ({}), note: () => '🙈 *Semua produk PPOB ditampilkan lagi (dari website)*' },
+  'bara.tree': { w: false, v: () => ({}) },
+  'bara.set': { w: true, v: (a) => (['games', 'prods'].includes(a.kind) && typeof a.key === 'string' && a.key.length >= 1 && a.key.length <= 160 && typeof a.hidden === 'boolean' ? { kind: a.kind, key: a.key, hidden: a.hidden } : null) },
+  'bara.reset': { w: true, v: () => ({}), note: () => '🎮 *Semua game & produk Baramarket ditampilkan lagi (dari website)*' },
   'prefs.setRekap': { w: true, v: (a) => (typeof a.on === 'boolean' ? { on: a.on } : null), note: (a) => `🧾 *Rekap harian otomatis ${a.on ? 'dinyalakan' : 'dimatikan'} dari website*` },
   // Layanan Lainnya (Digiflazz). Bacaan memakai cache di bot; "refresh" dibatasi ketat supaya akun Digiflazz tidak kena limit.
   'digi.codes': { w: false, v: () => ({}) },
