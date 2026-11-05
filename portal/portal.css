@@ -599,3 +599,32 @@ code.kode{font-family:var(--font-mono);font-size:.76rem;padding:2px 7px;border-r
 .modal-card.wide{width:min(920px,100%)}
 .tbl tr.off td{opacity:.55}
 .wa-mini{background:var(--wa-in,#202c33);color:#e9edef;border-radius:14px;padding:12px 14px;font-size:.88rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto}
+
+/* ═══════════ efek tombol: kursor lewat → naik, membesar, menyala · ditekan → mengecil (sama seperti halaman utama) ═══════════ */
+.item,.editor,.auth-card{animation-fill-mode:backwards}
+.btn,.gbtn,.item,.botcard,.tag,.slink,.switch,.back,.side-link,.menu-pop button,.ib{transition:transform .22s cubic-bezier(.2,.8,.2,1),background-color .2s,background .2s,border-color .2s,box-shadow .22s,color .2s,filter .2s}
+@media (hover:hover) and (pointer:fine){
+  .btn:not([disabled]):hover{transform:translateY(-2px) scale(1.03);border-color:rgba(255,155,74,.6);box-shadow:0 12px 24px -16px rgba(0,0,0,.9)}
+  .btn.primary:not([disabled]):hover{box-shadow:0 14px 28px -12px rgba(236,52,66,.85);filter:brightness(1.07) saturate(1.1)}
+  .btn.ghost:not([disabled]):hover{box-shadow:none;border-color:transparent}
+  .gbtn:hover{transform:translateX(3px);color:var(--ink)}
+  .gbtn:hover .gi{color:var(--accent)}
+  .item:hover{transform:translateY(-3px) scale(1.02);border-color:rgba(255,155,74,.6);box-shadow:0 16px 30px -18px rgba(236,52,66,.6),0 0 0 3px rgba(255,155,74,.12)}
+  .botcard:hover{transform:translateY(-3px) scale(1.015);box-shadow:0 16px 30px -18px rgba(236,52,66,.6)}
+  .tag:hover{transform:translateY(-1px) scale(1.06)}
+  .slink:hover{transform:translateY(-2px) scale(1.02)}
+  .switch:hover{box-shadow:0 0 0 4px rgba(255,155,74,.14)}
+  .back:hover{transform:translateX(-3px);color:var(--accent)}
+  .menu-pop button:hover{transform:translateX(2px)}
+}
+.btn:not([disabled]):active,.item:active,.botcard:active,.gbtn:active,.tag:active,.slink:active,.switch:active{transform:scale(.97)!important;transition-duration:.08s}
+@media (max-width:860px){ .gbtn:hover{transform:none} }
+
+/* ═══════════ kelancaran di laptop juga: kaca tanpa blur langsung ═══════════
+   Blur kaca di atas isi yang digeser memaksa layar dihitung ulang tiap frame (scroll jadi patah-patah di laptop biasa).
+   Kesan kaca tetap dari gradasi + pinggiran berkilau; isi kartu sedikit lebih pekat supaya tetap mudah dibaca. */
+:root{--glass:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02)),rgba(28,20,18,.82);
+      --glass-hi:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.03)),rgba(32,23,20,.94);--blur:none}
+*,*::before,*::after{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.top{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01)),rgba(18,12,11,.92)}
+.modal{background:rgba(6,4,3,.72)}
