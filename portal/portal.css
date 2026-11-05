@@ -569,3 +569,17 @@ select.input option{background:#1f1714;color:var(--ink)}
 /* popup menu ada di dalam header kaca (blur bertingkat tidak bekerja) → kaca pekat supaya isi di belakang tidak tembus */
 .menu-pop{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),#221917}
 @media (min-width:861px){ .shell{grid-template-columns:276px minmax(0,1fr)} }
+
+/* ── RINGAN DI HP ──
+   Latar tidak bergerak lagi (latar bergerak = semua kaca di-blur ulang tiap frame).
+   Di HP / layar sentuh blur sungguhan dimatikan; kesan kaca tetap dari gradasi + pinggiran berkilau. */
+body::after{animation:none;transform:translate(-20%,-10%)}
+@media (hover:none),(max-width:860px){
+  :root{--glass:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.02)),rgba(28,20,18,.82);
+        --glass-hi:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.03)),rgba(32,23,20,.94)}
+  .auth-card,.dsec,.editor,.modal-card,.menu-pop,.dock-in,.toast,.item,.botchip,.top,.side,.gbtn,.msg,.chip,.badge{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  .top{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01)),rgba(18,12,11,.92)}
+  .modal{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(6,4,3,.72)}
+  body::after{display:none}
+  .item::after,.botchip::after{content:none}
+}
