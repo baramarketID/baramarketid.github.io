@@ -161,5 +161,12 @@
   "s": "3c6f8892be890a2b8a4f6c51e0ce2c4f",
   "it": 200000,
   "h": "ec8c69a642079f6ad15a1d81b54889922587ec901ef1078ff613b9b45be9d0ea"
+ },
+ "sewaCta": {
+  "show": true,
+  "eyebrow": "Ingin punya bot topup sendiri?",
+  "title": "Sewa Bot Topup WhatsApp",
+  "text": "Toko topup & PPOB otomatis 24 jam di nomor WhatsApp-mu. Daftar dan bayar QRIS langsung di sini.",
+  "btnLabel": "Sewa sekarang"
  }
 }
