@@ -542,7 +542,28 @@ const CALLS = {
   'ppob.set': { w: true, v: (a) => (['cats', 'brands', 'prods'].includes(a.kind) && typeof a.key === 'string' && a.key.length >= 1 && a.key.length <= 160 && typeof a.hidden === 'boolean' ? { kind: a.kind, key: a.key, hidden: a.hidden } : null) },
   'ppob.reset': { w: true, v: () => ({}), note: () => '🙈 *Semua produk PPOB ditampilkan lagi (dari website)*' },
   'prefs.setRekap': { w: true, v: (a) => (typeof a.on === 'boolean' ? { on: a.on } : null), note: (a) => `🧾 *Rekap harian otomatis ${a.on ? 'dinyalakan' : 'dimatikan'} dari website*` },
+  // Layanan Lainnya (Digiflazz). Bacaan memakai cache di bot; "refresh" dibatasi ketat supaya akun Digiflazz tidak kena limit.
+  'digi.codes': { w: false, v: () => ({}) },
+  'digi.catalog': { w: false, v: () => ({}) },
+  'digi.refresh': { w: true, rate: ['dr', 12], v: () => ({}) },
+  'digi.products': { w: false, v: (a) => (digiName(a.kategori) && digiName(a.brand) && digiTypes(a.types) ? { kategori: a.kategori.trim(), brand: a.brand.trim(), types: digiTypes(a.types) } : null) },
+  'digi.suggest': { w: false, v: (a) => (digiName(a.brand) ? { brand: a.brand.trim() } : null) },
+  'digi.add': { w: true, v: (a) => (digiName(a.kategori) && digiName(a.brand) && DIGI_CODE.test(String(a.code || '')) && digiTypes(a.types) ? { kategori: a.kategori.trim(), brand: a.brand.trim(), code: String(a.code), types: digiTypes(a.types) } : null),
+    note: (a) => `➕ *Layanan ditambahkan dari website*\n\n› ${a.kategori} → ${a.brand}\n› Kode: ${a.code}${a.types.length ? `\n› Type: ${a.types.join(', ')}` : ''}` },
+  'digi.update': { w: true, v: (a) => (DIGI_CODE.test(String(a.code || '')) && (a.kategori === undefined || digiName(a.kategori)) && (a.brand === undefined || digiName(a.brand)) && digiTypes(a.types)
+    ? { code: String(a.code), ...(a.kategori !== undefined ? { kategori: a.kategori.trim() } : {}), ...(a.brand !== undefined ? { brand: a.brand.trim() } : {}), ...(a.types !== undefined ? { types: digiTypes(a.types) } : {}) } : null) },
+  'digi.remove': { w: true, v: (a) => (DIGI_CODE.test(String(a.code || '')) ? { code: String(a.code) } : null), note: (a) => `🗑️ *Layanan kode ${a.code} dihapus dari menu Layanan Lainnya (website)*` },
+  // saluran testimoni WhatsApp milik penyewa
+  'saluran.get': { w: false, v: () => ({}) },
+  'saluran.set': { w: true, v: (a) => { const l = String(a.link || '').trim(); return /^https:\/\/(www\.)?whatsapp\.com\/channel\/[\w-]{10,60}\/?$/i.test(l) || /^\d{8,30}@newsletter$/.test(l) ? { link: l } : null; },
+    note: (a) => `📣 *Saluran testimoni diatur dari website*\n\n› ${a.link}\n\nPastikan nomor bot sudah jadi *admin* saluran itu.` },
+  'saluran.reset': { w: true, v: () => ({}), note: () => '📣 *Saluran testimoni dimatikan dari website*' },
+  'saluran.check': { w: true, rate: ['sc', 15], v: (a) => ({ send: a.send === true }) },
+  'digi.setLow': { w: true, v: (a) => { const n = Number(a.value); return Number.isInteger(n) && n >= 0 && n <= 100000000 ? { value: n } : null; } },
 };
+const DIGI_CODE = /^[a-z0-9_-]{1,20}$/;
+const digiName = (x) => typeof x === 'string' && x.trim().length >= 1 && x.trim().length <= 80 && !/[<>]/.test(x);
+const digiTypes = (t) => { if (t === undefined) return []; if (!Array.isArray(t) || t.length > 30) return null; const out = []; for (const x of t) { if (!digiName(x)) return null; if (!out.includes(x.trim())) out.push(x.trim()); } return out; };
 async function routeCall(fs, s, req) {
   const b = await body(req, MAX_BODY_BANNER);
   if (!ownsTenant(s, b.tenant)) return fail(403, 'Bot ini bukan milikmu.');
@@ -552,6 +573,7 @@ async function routeCall(fs, s, req) {
   const args = spec.v(b.args && typeof b.args === 'object' && !Array.isArray(b.args) ? b.args : {});
   if (!args) return fail(400, 'Data tidak valid. Muat ulang halaman lalu coba lagi.');
   if (!(await allow(fs, `${spec.w ? 'cw' : 'cr'}_${b.tenant}`, spec.w ? 150 : 400, HOUR))) return fail(429, 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.');
+  if (spec.rate && !(await allow(fs, `${spec.rate[0]}_${b.tenant}`, spec.rate[1], HOUR))) return fail(429, 'Terlalu sering memperbarui. Coba lagi nanti.');
   return hostCommand(fs, s, b.tenant, 'portal_call', { fn: b.fn, args }, spec.note ? spec.note(args) : '');
 }
 
