@@ -29,6 +29,8 @@
     check: '<path d="M20 6 9 17l-5-5"/>',
     x: '<path d="M18 6 6 18M6 6l12 12"/>',
     chev: '<path d="m6 9 6 6 6-6"/>',
+    burger: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+    panel: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/><path d="m15.5 10-2 2 2 2"/>',
     back: '<path d="m15 18-6-6 6-6"/>',
     rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
     undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
@@ -87,16 +89,72 @@
     const key = (n, i) => `${n.id || n.className}|${i}`;
     document.querySelectorAll(KEEP_SEL).forEach((n, i) => { if (n.scrollLeft || n.scrollTop) saved[key(n, i)] = [n.scrollLeft, n.scrollTop]; });
     fn();
+    try { liven(); } catch (e) { /* animasi tidak boleh merusak halaman */ }
     document.querySelectorAll(KEEP_SEL).forEach((n, i) => { const v = saved[key(n, i)]; if (v) { n.scrollLeft = v[0]; n.scrollTop = v[1]; } });
     if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
   }
   function mount(node) { keepScroll(() => { const a = app(); a.textContent = ''; a.appendChild(node); }); }
+  // ───────────────────────── ANIMASI HIDUP ─────────────────────────
+  const RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  const motionOn = () => !RM.matches;
+  const SEG = new Map();   // posisi pilihan terakhir per kelompok tab (tetap diingat walau sempat hilang saat memuat)
+  const SW = new Map();    // keadaan saklar terakhir
+  const segKey = (t) => [...t.querySelectorAll('button')].map((b) => b.textContent.trim()).join('|');
+  /** Tab pilihan: satu "bantalan" yang meluncur ke tombol yang dipilih. Saklar: bulatan meluncur dari keadaan lama. */
+  function liven(root) {
+    (root || document).querySelectorAll('.pv-tabs').forEach((t) => {
+      const bs = [...t.querySelectorAll(':scope > button')]; const on = bs.find((b) => b.classList.contains('on'));
+      if (!on || !t.offsetWidth) return;
+      const key = segKey(t); const prev = SEG.get(key);
+      let th = t.querySelector(':scope > .pv-thumb'); if (!th) { th = h('i', { class: 'pv-thumb', 'aria-hidden': 'true' }); t.prepend(th); }
+      t.classList.add('thumbed');
+      const to = { x: on.offsetLeft, w: on.offsetWidth };
+      SEG.set(key, to);
+      const place = (v) => { th.style.width = `${v.w}px`; th.style.transform = `translateX(${v.x}px)`; };
+      if (prev && motionOn() && (prev.x !== to.x || prev.w !== to.w)) {
+        th.style.transition = 'none'; place(prev); void th.offsetWidth; th.style.transition = ''; place(to);
+        on.classList.add('pv-pop'); setTimeout(() => on.classList.remove('pv-pop'), 420);
+      } else place(to);
+    });
+    (root || document).querySelectorAll('.switch[aria-label]').forEach((w) => {
+      const key = w.getAttribute('aria-label'); const on = w.classList.contains('on'); const was = SW.get(key); SW.set(key, on);
+      if (was === undefined || was === on || !motionOn()) return;
+      w.classList.add('sw-from'); w.classList.toggle('on', was); void w.offsetWidth;
+      w.classList.remove('sw-from'); w.classList.toggle('on', on); w.classList.add('sw-boing'); setTimeout(() => w.classList.remove('sw-boing'), 520);
+    });
+  }
+  /** Isi halaman masuk berurutan (dari bawah kalau turun di menu, dari atas kalau naik). */
+  function pageIn(dir) {
+    const m = $('#main'); if (!m || !motionOn()) return;
+    m.classList.remove('norise', 'pg-in'); m.style.setProperty('--pgy', dir < 0 ? '-14px' : '14px');
+    [...m.children].slice(0, 10).forEach((c, i) => c.style.setProperty('--k', i));
+    m.querySelectorAll('.items > *, .dgrid > *, .tiles > *, .setrow, .pcat').forEach((c, i) => { if (i < 18) c.style.setProperty('--j', i); });
+    void m.offsetWidth; m.classList.add('pg-in'); pageIn.at = performance.now(); pageIn.dir = dir;
+    clearTimeout(pageIn.t); pageIn.t = setTimeout(() => m.classList.remove('pg-in'), 900);
+  }
+  /** Sorotan menu samping meluncur dari tombol lama ke tombol baru. */
+  function flipSide(prev) {
+    const nb = document.querySelector('#groups .gbtn.on'); const g = $('#groups');
+    if (!prev || !nb || !g || !motionOn() || !nb.offsetHeight) return;
+    const nr = nb.getBoundingClientRect(); if (Math.abs(prev.top - nr.top) < 2) return;
+    const ind = h('i', { class: 'gind', 'aria-hidden': 'true' });
+    ind.style.cssText = `top:${nb.offsetTop}px;left:${nb.offsetLeft}px;width:${nb.offsetWidth}px;height:${nb.offsetHeight}px;transform:translateY(${prev.top - nr.top}px)`;
+    g.appendChild(ind); g.classList.add('flip'); void ind.offsetWidth;
+    ind.style.transform = 'none';
+    const done = () => { g.classList.remove('flip'); ind.remove(); };
+    ind.addEventListener('transitionend', done, { once: true }); setTimeout(done, 600);
+  }
   /** Pindah ke halaman lain di menu: menu samping tetap di posisinya, isi baru terlihat dari atas. */
   function goGroup(k, sel) {
     const changed = S.group !== k || S.q;
+    const ob = document.querySelector('#groups .gbtn.on'); const prev = ob ? ob.getBoundingClientRect() : null;
+    const order = [...document.querySelectorAll('#groups .gbtn')]; const oi = order.indexOf(ob);
+    closeDrawer(true); S.mq = false;
     S.group = k; S.q = ''; if (sel !== undefined) S.sel = sel;
     renderApp();
     if (!changed) return;
+    const nb = document.querySelector('#groups .gbtn.on'); const ni = [...document.querySelectorAll('#groups .gbtn')].indexOf(nb);
+    flipSide(prev); pageIn(oi >= 0 && ni >= 0 && ni < oi ? -1 : 1);
     const on = document.querySelector('.gbtn.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     const m = $('#main'); if (m && m.getBoundingClientRect().top < 0) m.scrollIntoView({ block: 'start' });
   }
@@ -105,7 +163,7 @@
   const S = {
     phone: '', to: '', cooldownUntil: 0, me: null, botId: '', cat: null, byKey: {}, state: null, draft: {}, hostAlive: true,
     group: '', sel: '', q: '', saveState: '', saveAt: 0, saveTimer: null, pv: 'new', modal: null, menu: false, booted: false,
-    v: {}, pair: null, chartM: 'omset',
+    v: {}, pair: null, chartM: 'omset', mini: false, mq: false,
   };
   const ls = { get: (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* abaikan */ } } };
 
@@ -388,7 +446,7 @@
     const old = $('.toast'); if (old) old.remove();
     const t = h('div', { class: `toast ${kind}`, role: 'status' }, [I(kind === 'ok' ? 'check' : 'alert'), text]);
     document.body.appendChild(t);
-    clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3600);
+    clearTimeout(toastT); toastT = setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 260); }, 3600);
   }
   const msg = (kind, text) => h('div', { class: `msg ${kind}`, role: kind === 'err' ? 'alert' : null }, [I(kind === 'ok' ? 'check' : kind === 'info' ? 'info' : 'alert'), h('span', { text })]);
   const fmtPhone = (p) => String(p || '').replace(/^62/, '0');
@@ -539,7 +597,7 @@
   }
 
   async function selectBot(id) {
-    mount(h('div', { class: 'boot' }, [h('span', { class: 'spin' }), 'Memuat pengaturan bot…']));
+    mount(h('div', { class: 'boot' }, loaderEl('Memuat pengaturan bot', true)));
     const d = await api(`/data?tenant=${encodeURIComponent(id)}`);
     if (!d.ok) { if (d._status === 401) return; return renderFatal(d.error, true); }
     S.botId = id; ls.set(LS_BOT, id);
@@ -571,13 +629,79 @@
       notes.appendChild(box);
     }
     if (notes.childNodes.length) root.appendChild(notes);
-    const shell = h('div', { class: 'shell' }, [renderSide(), h('div', { class: 'main', id: 'main' }, renderMain())]);
+    root.appendChild(renderMnav());
+    const shell = h('div', { class: `shell${S.mini ? ' mini' : ''}` }, [renderSide(), h('div', { class: 'side-scrim', onclick: () => closeDrawer() }), h('div', { class: 'main', id: 'main' }, renderMain())]);
     root.appendChild(shell);
     root.appendChild(h('div', { id: 'dock-slot' }));
     mount(root);
+    const tp = $('.top'); if (tp) document.documentElement.style.setProperty('--toph', tp.offsetHeight + 'px');
     renderDock();
     if (S.modal) renderModal();
   }
+
+  // ───────────────────────── MENU SAMPING: bisa diperkecil (PC) · laci geser (HP) ─────────────────────────
+  S.mini = ls.get('bmp-side-mini') === '1';
+  function setMini(v) {
+    S.mini = v; ls.set('bmp-side-mini', v ? '1' : '0'); hideTip();
+    const sh = $('.shell'); if (!sh) return;
+    sh.classList.add('tog'); sh.classList.toggle('mini', v);
+    clearTimeout(setMini.t); setMini.t = setTimeout(() => sh.classList.remove('tog'), 450);
+    const b = $('.side-tog'); if (b) { b.setAttribute('aria-expanded', String(!v)); b.setAttribute('aria-label', v ? 'Perbesar menu' : 'Perkecil menu'); b.dataset.tip = v ? 'Perbesar menu' : 'Perkecil menu'; }
+  }
+  const isPhone = () => window.matchMedia('(max-width:860px)').matches;
+  function openDrawer() {
+    document.documentElement.classList.add('drw');
+    const b = $('.mnav-menu'); if (b) b.setAttribute('aria-expanded', 'true');
+    setTimeout(() => { const on = $('.side .gbtn.on') || $('.side .gbtn'); if (on) { on.scrollIntoView({ block: 'center' }); on.focus({ preventScroll: true }); } }, 60);
+  }
+  function closeDrawer(quiet) {
+    if (!document.documentElement.classList.contains('drw')) return;
+    document.documentElement.classList.remove('drw');
+    const b = $('.mnav-menu'); if (b) { b.setAttribute('aria-expanded', 'false'); if (!quiet) b.focus({ preventScroll: true }); }
+  }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.documentElement.classList.contains('drw')) closeDrawer(); });
+  window.addEventListener('resize', () => { if (!isPhone()) closeDrawer(true); });
+  // geser laci ke kiri untuk menutup
+  (() => { let x0 = null, y0 = 0;
+    document.addEventListener('touchstart', (e) => { if (!document.documentElement.classList.contains('drw') || !e.target.closest('.side,.side-scrim')) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    document.addEventListener('touchend', (e) => { if (x0 === null) return; const t = e.changedTouches[0]; if (x0 - t.clientX > 60 && Math.abs(t.clientY - y0) < 60) closeDrawer(true); x0 = null; }, { passive: true });
+  })();
+  /** judul & ikon halaman yang sedang dibuka (untuk bar menu HP) */
+  function curPage() {
+    if (S.q.trim()) return { icon: 'search', label: `Cari: "${S.q.trim()}"` };
+    if (S.group === DASH) return { icon: 'dash', label: 'Dashboard' };
+    if (VIEWS[S.group]) return { icon: VIEWS[S.group].icon, label: VIEWS[S.group].label };
+    const g = S.cat.groups.find((x) => x.id === S.group) || {};
+    return { icon: g.icon || 'list', label: g.label || 'Menu' };
+  }
+  function renderMnav() {
+    const c = curPage();
+    const q = h('input', { type: 'search', class: 'mnav-in', placeholder: 'Cari: cekml, sukses, deposit…', value: S.q, 'aria-label': 'Cari pengaturan', enterkeyhint: 'search' });
+    q.addEventListener('input', () => { S.q = q.value; refreshMain(); const l = $('.mnav-menu .ml'); if (l) l.textContent = curPage().label; });
+    q.addEventListener('keydown', (e) => { if (e.key === 'Enter') q.blur(); if (e.key === 'Escape') closeQ(); });
+    const closeQ = () => { S.mq = false; const had = S.q; S.q = ''; nav.classList.remove('sq'); if (had) renderApp(); };
+    const nav = h('div', { class: `mnav${S.mq ? ' sq' : ''}` }, [h('div', { class: 'mnav-in-wrap' }, [
+      h('button', { class: 'mnav-menu', type: 'button', 'aria-expanded': 'false', 'aria-haspopup': 'true', onclick: openDrawer }, [
+        h('span', { class: 'mi' }, I('burger')), h('span', { class: 'mt' }, [h('small', { text: 'Menu' }), h('b', { class: 'ml', text: c.label })]), h('span', { class: 'mc' }, I('chev')),
+      ]),
+      h('button', { class: 'mnav-q', type: 'button', 'aria-label': 'Cari pengaturan', onclick: () => { S.mq = true; nav.classList.add('sq'); q.focus(); } }, I('search')),
+      h('div', { class: 'mnav-search' }, [I('search'), q, h('button', { class: 'mnav-x', type: 'button', 'aria-label': 'Tutup pencarian', onclick: closeQ }, I('x'))]),
+    ])]);
+    if (S.mq) setTimeout(() => { if (document.activeElement !== q && S.mq && !S.q) q.focus(); }, 0);
+    return nav;
+  }
+  // tooltip nama menu saat sidebar diperkecil
+  let tipEl = null;
+  function hideTip() { if (tipEl) tipEl.classList.remove('on'); }
+  document.addEventListener('mouseover', (e) => {
+    const t = e.target.closest('.shell.mini .side [data-tip], .side-tog[data-tip]');
+    if (!t) { hideTip(); return; }
+    if (!tipEl) { tipEl = h('div', { class: 'stip', role: 'tooltip' }); document.body.appendChild(tipEl); }
+    const r = t.getBoundingClientRect();
+    tipEl.textContent = t.dataset.tip; tipEl.style.left = `${r.right + 12}px`; tipEl.style.top = `${r.top + r.height / 2}px`; tipEl.classList.add('on');
+  });
+  document.addEventListener('scroll', hideTip, true);
+
 
   function renderTop() {
     const b = bot();
@@ -615,24 +739,28 @@
   function renderSide() {
     const q = h('input', { type: 'search', placeholder: 'Cari: cekml, sukses, deposit…', value: S.q, 'aria-label': 'Cari pengaturan' });
     q.addEventListener('input', () => { S.q = q.value; refreshMain(); });
-    return h('aside', { class: 'side' }, [
-      h('div', { class: 'search' }, [I('search'), q]),
+    const tog = h('button', { class: 'side-tog', type: 'button', 'aria-expanded': String(!S.mini), 'aria-label': S.mini ? 'Perbesar menu' : 'Perkecil menu', 'data-tip': S.mini ? 'Perbesar menu' : 'Perkecil menu', onclick: () => setMini(!S.mini) }, I('panel'));
+    const search = h('div', { class: 'search', 'data-tip': 'Cari pengaturan', onclick: () => { if (S.mini) { setMini(false); setTimeout(() => q.focus(), 120); } } }, [I('search'), q]);
+    setTimeout(() => document.querySelectorAll('#groups > *').forEach((c, i) => c.style.setProperty('--j', Math.min(i, 24))), 0);
+    return h('aside', { class: 'side', id: 'side', 'aria-label': 'Menu' }, [
+      h('div', { class: 'side-head' }, [h('span', { class: 'sh-t', text: 'Menu' }), tog, h('button', { class: 'side-x', type: 'button', 'aria-label': 'Tutup menu', onclick: () => closeDrawer() }, I('x'))]),
+      search,
       h('nav', { class: 'groups', id: 'groups', 'aria-label': 'Kelompok pengaturan' }, [h('button', {
         class: `gbtn${S.group === DASH && !S.q ? ' on' : ''}`, type: 'button', 'aria-current': S.group === DASH && !S.q ? 'true' : null,
-        onclick: () => goGroup(DASH),
+        onclick: () => goGroup(DASH), 'data-tip': 'Dashboard',
       }, [h('span', { class: 'gi', icon: 'dash' }), h('span', { class: 'gl', text: 'Dashboard' })]),
       h('div', { class: 'gsep', text: 'Toko & bot' }), ...['__bot', '__profit', '__users', '__hist', '__banner', '__saluran', '__bara', '__digi', '__ppob'].filter(viewOn).map(viewBtn),
       h('div', { class: 'gsep', text: 'Wording & profil' }), ...S.cat.groups.filter((g) => items().some((i) => i.g === g.id)).map((g) => h('button', {
         class: `gbtn${g.id === S.group && !S.q ? ' on' : ''}`, type: 'button', 'data-g': g.id, 'aria-current': g.id === S.group && !S.q ? 'true' : null,
-        onclick: () => { const first = items().find((x) => x.g === g.id); goGroup(g.id, first ? first.key : ''); },
+        onclick: () => { const first = items().find((x) => x.g === g.id); goGroup(g.id, first ? first.key : ''); }, 'data-tip': g.label,
       }, [h('span', { class: 'gi', icon: g.icon }), h('span', { class: 'gl', text: g.label }), groupBadge(g.id)])), h('div', { class: 'gsep', text: 'Bantuan' }), viewBtn('__help')]),
       h('p', { class: 'side-note', text: 'Perubahan tersimpan otomatis sebagai draf. Bot baru berubah setelah kamu menekan Luncurkan.' }),
-      h('a', { class: 'side-link', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer' }, [I('chat'), 'Grup diskusi penyewa']),
+      h('a', { class: 'side-link', href: GROUP_URL, target: '_blank', rel: 'noopener noreferrer', 'data-tip': 'Grup diskusi penyewa' }, [I('chat'), h('span', { class: 'gl', text: 'Grup diskusi penyewa' })]),
     ]);
   }
   function viewBtn(k) {
     const on = S.group === k && !S.q;
-    return h('button', { class: `gbtn${on ? ' on' : ''}`, type: 'button', 'aria-current': on ? 'true' : null, onclick: () => goGroup(k) }, [h('span', { class: 'gi', icon: VIEWS[k].icon }), h('span', { class: 'gl', text: VIEWS[k].label })]);
+    return h('button', { class: `gbtn${on ? ' on' : ''}`, type: 'button', 'aria-current': on ? 'true' : null, onclick: () => goGroup(k), 'data-tip': VIEWS[k].label }, [h('span', { class: 'gi', icon: VIEWS[k].icon }), h('span', { class: 'gl', text: VIEWS[k].label })]);
   }
   function refreshSide() {
     const nav = $('#groups'); if (!nav) return;
@@ -783,7 +911,15 @@
     ]);
   }
   /** Perbarui isi halaman yang sama (tanpa animasi masuk lagi, jadi tidak terasa seperti dimuat ulang). */
-  function refreshMain() { const m = $('#main'); if (!m) return; m.classList.add('norise'); keepScroll(() => { m.textContent = ''; add(m, renderMain()); }); refreshSide(); }
+  function refreshMain() {
+    const m = $('#main'); if (!m) return;
+    const wasLoading = !!m.querySelector(':scope > .ldr-wrap, :scope > .dsec > .ldr');
+    const justIn = m.classList.contains('pg-in') && performance.now() - (pageIn.at || 0) < 220;   // baru saja pindah halaman → lanjutkan animasinya
+    m.classList.add('norise'); m.classList.remove('pg-in');
+    keepScroll(() => { m.textContent = ''; add(m, renderMain()); }); refreshSide();
+    if (justIn) pageIn(pageIn.dir || 1);
+    else if (wasLoading && !m.querySelector('.ldr')) pageIn(1);
+  }
   function itemCard(it, i) {
     const st = statusOf(it);
     return h('button', { class: `item${it.key === S.sel ? ' on' : ''}`, type: 'button', 'data-k': it.key, style: `animation-delay:${Math.min(i, 12) * 25}ms`, onclick: () => {
@@ -1069,7 +1205,23 @@
   }
   const viewHead = (k, extra) => h('div', { class: 'ghead row between' }, [h('div', null, [h('h2', { text: VIEWS[k].label }), h('p', { text: VIEWS[k].desc })]), extra ? h('div', { class: 'row' }, extra) : null]);
   const refreshBtn = (onclick, busy) => h('button', { class: 'btn sm', type: 'button', disabled: busy ? true : null, onclick }, [busy ? h('span', { class: 'spin' }) : I('refresh'), busy ? 'Memuat…' : 'Muat ulang']);
-  const loading = (text) => h('div', { class: 'dsec' }, h('div', { class: 'row' }, [h('span', { class: 'spin' }), h('span', { class: 'hint', text: text || 'Mengambil data dari bot…' })]));
+  /** Loader: cincin emas & oranye berputar mengelilingi logo bot, teks langkah berganti sendiri, garis progres berjalan. */
+  function loaderEl(text, big) {
+    const steps = ['Menghubungi bot…', 'Mengambil data…', 'Menyusun tampilan…', 'Hampir selesai…'];
+    const orb = h('div', { class: 'ldr-orb', 'aria-hidden': 'true' });
+    orb.innerHTML = '<svg viewBox="0 0 64 64"><circle class="trk" cx="32" cy="32" r="28"/><circle class="a1" cx="32" cy="32" r="28" pathLength="100"/><circle class="a2" cx="32" cy="32" r="20" pathLength="100"/></svg>';
+    orb.appendChild(h('span', { class: 'ldr-core' }, I('bot')));
+    return h('div', { class: `ldr${big ? ' big' : ''}`, role: 'status', 'aria-live': 'polite' }, [
+      orb,
+      h('div', { class: 'ldr-tx' }, [
+        h('b', null, [h('span', { text: text || 'Mengambil data dari bot' }), h('span', { class: 'ldr-dots', 'aria-hidden': 'true' }, [h('i'), h('i'), h('i')])]),
+        h('span', { class: 'ldr-steps', 'aria-hidden': 'true' }, steps.map((t) => h('small', { text: t }))),
+      ]),
+      h('div', { class: 'ldr-bar', 'aria-hidden': 'true' }, h('i')),
+    ]);
+  }
+  const loading = (text) => h('div', { class: 'dsec ldr-wrap' }, [loaderEl(String(text || 'Mengambil data dari bot').replace(/[….]+$/, '')),
+    h('div', { class: 'ldr-sk', 'aria-hidden': 'true' }, [1, 2, 3].map((i) => h('div', { class: 'ldr-skrow', style: `--j:${i}` }, [h('span', { class: 'sk-i' }), h('span', { class: 'sk-l' }, [h('i'), h('i')])])))]);
   function viewGuard(k, fn, args) {
     const v = V(k);
     if (!v.data && !v.busy && !v.err) setTimeout(() => loadView(k, fn, args), 0);
@@ -2029,10 +2181,15 @@
 
   // ───────────────────────── modal ─────────────────────────
   function openModal(m) { S.modal = m; renderModal(); }
-  function closeModal() { S.modal = null; const el = $('.modal'); if (el) el.remove(); }
+  function closeModal() {
+    S.modal = null; const el = $('.modal:not(.closing)'); if (!el) return;
+    if (!motionOn()) { el.remove(); return; }
+    el.classList.add('closing'); setTimeout(() => el.remove(), 230);
+  }
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.modal && S.modal.kind !== 'progress') { if (S.modal.kind === 'depo') stopDepo(); if (S.modal.kind === 'renew') stopRenew(); closeModal(); } });
   function renderModal() {
-    const old = $('.modal'); if (old) old.remove();
+    const old = $('.modal:not(.closing)'); const had = !!old; if (old) old.remove();
+    document.querySelectorAll('.modal.closing').forEach((x) => x.remove());
     const m = S.modal; if (!m) return;
     let card;
     if (m.kind === 'confirm') {
@@ -2083,8 +2240,9 @@
         h('footer', null, m.step >= 3 || m.error ? [m.error ? h('button', { class: 'btn', type: 'button', onclick: () => openModal({ kind: 'review' }) }, 'Kembali') : null, h('button', { class: 'btn primary', type: 'button', onclick: closeModal }, 'Selesai')] : [h('span', { class: 'hint', text: 'Jangan tutup halaman ini…' })]),
       ]);
     }
-    const ov = h('div', { class: 'modal', onclick: (e) => { if (e.target === ov && !['progress', 'depo', 'renew', 'user'].includes(m.kind)) closeModal(); } }, card);
+    const ov = h('div', { class: `modal${had ? ' still' : ''}`, onclick: (e) => { if (e.target === ov && !['progress', 'depo', 'renew', 'user'].includes(m.kind)) closeModal(); } }, card);
     document.body.appendChild(ov);
+    try { liven(ov); } catch (e) { /* abaikan */ }
     const f = card.querySelector('footer .btn.primary:not([disabled])') || card.querySelector('button');
     if (f) f.focus();
   }
