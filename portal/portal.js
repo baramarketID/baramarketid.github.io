@@ -3,6 +3,18 @@
  * tidak pernah sebagai HTML, jadi wording apa pun aman ditampilkan. */
 (() => {
   'use strict';
+  /* Versi tampilan. Harus sama dengan --bmp-css di portal.css. Kalau browser / server masih memberi portal.css lama
+     (misalnya file belum selesai terupload atau masih tersimpan di cache), CSS terbaru diambil ulang otomatis. */
+  const CSS_VER = '20261106f';
+  (function cssFresh() {
+    try {
+      const got = getComputedStyle(document.documentElement).getPropertyValue('--bmp-css').replace(/["'\s]/g, '');
+      if (got === CSS_VER) return;
+      const old = document.querySelector('link[rel="stylesheet"][href*="portal.css"]'); if (!old) return;
+      const n = document.createElement('link'); n.rel = 'stylesheet'; n.href = `portal.css?v=${CSS_VER}&r=${Date.now()}`;
+      n.onload = () => old.remove(); old.after(n);
+    } catch (e) { /* abaikan */ }
+  })();
   const API = '/api/portal';
   const MAIN_BOT = '0812-6642-6608';               // nomor bot topup utama Baramarket (pengirim kode OTP)
   const PAGES_URL = 'https://baramarket.my.id/portal/';
