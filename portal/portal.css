@@ -908,3 +908,6 @@ body{color:var(--cream)}
   #main.pg-in>*,#main.pg-in *,.ldr *,.ldr-wrap,.ldr-skrow,.modal,.modal>.modal-card,.toast,.dock-in,html.drw .side .groups>*{animation:none!important}
   .pv-thumb,.gind,.switch>span{transition:none!important}
 }
+
+/* versi tampilan — harus sama dengan CSS_VER di portal.js */
+:root{--bmp-css:"20261106f"}
